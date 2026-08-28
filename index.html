@@ -77,6 +77,11 @@ body{min-height:100%;background:var(--bg);background-image:radial-gradient(circl
 .co-box{background:var(--ca);border-radius:18px;width:95%;max-width:360px;padding:28px;
   box-shadow:var(--sd);text-align:center;transform:none;transition:none}
 #co.open .co-box{transform:none}
+#info-modal{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:901;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .16s ease,visibility 0s linear .16s}
+#info-modal.open{opacity:1;visibility:visible;pointer-events:all;transition-delay:0s}
 
 /* MODAL */
 .mo{position:fixed;inset:0;background:rgba(15,23,42,.46);z-index:800;
@@ -1028,6 +1033,16 @@ select.fi{padding-left:12px}
     <div style="display:flex;gap:11px;justify-content:center">
       <button class="btn btn-ol" onclick="coClose()">বাতিল</button>
       <button class="btn btn-er" id="co-ok" onclick="coDo()">হ্যাঁ</button>
+    </div>
+  </div>
+</div>
+<div id="info-modal">
+  <div class="co-box">
+    <div style="font-size:2.7rem;color:var(--ac);margin-bottom:11px" id="info-ico"><i class="fas fa-circle-info"></i></div>
+    <div style="font-size:1.02rem;font-weight:700;margin-bottom:6px" id="info-title">তথ্য</div>
+    <div style="font-size:.87rem;color:var(--mu);margin-bottom:19px" id="info-msg"></div>
+    <div style="display:flex;gap:11px;justify-content:center">
+      <button class="btn btn-pl" onclick="infoClose()">ঠিক আছে</button>
     </div>
   </div>
 </div>
@@ -2685,8 +2700,8 @@ select.fi{padding-left:12px}
           </div>
           <div class="tw">
             <table>
-              <thead><tr><th>#</th><th>রেজি</th><th>রোল</th><th>নাম</th><th>শ্রেণি</th><th>কক্ষ</th><th>সময়</th><th>অ্যাকশন</th></tr></thead>
-              <tbody id="at-tbl"><tr><td colspan="8" class="te">সেশন বেছে নিন</td></tr></tbody>
+              <thead><tr><th>#</th><th>ছবি</th><th>রেজি</th><th>রোল</th><th>নাম</th><th>শ্রেণি</th><th>কক্ষ</th><th>সময়</th><th>অ্যাকশন</th></tr></thead>
+              <tbody id="at-tbl"><tr><td colspan="9" class="te">সেশন বেছে নিন</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -3692,9 +3707,29 @@ select.fi{padding-left:12px}
         class_name:cMap[String(s.class_id)]||''}));
       return {success:true,data};
     },
-    async addStudent(d){ return STD.add(d); },
-    async updateStudent(d){ return STD.update(d); },
-    async deleteStudent(id){ return STD.del(id); },
+    async addStudent(d){
+      if(typeof CR!=='undefined' && CR==='institution'){
+        const s=await loadSettings();
+        if(s.global_std_allow==='false') return err('শিক্ষার্থী যুক্ত করার অনুমতি বর্তমানে বন্ধ আছে — সুপার এডমিনের সাথে যোগাযোগ করুন');
+      }
+      return STD.add(d);
+    },
+    async updateStudent(d){
+      if(typeof CR!=='undefined' && CR==='institution'){
+        if(!(typeof CP!=='undefined' && CP.std_edit===true)){
+          return err('শিক্ষার্থীর তথ্য সম্পাদনার অনুমতি বন্ধ আছে — সুপার এডমিনের সাথে যোগাযোগ করুন');
+        }
+      }
+      return STD.update(d);
+    },
+    async deleteStudent(id){
+      if(typeof CR!=='undefined' && CR==='institution'){
+        if(!(typeof CP!=='undefined' && CP.std_del===true)){
+          return err('শিক্ষার্থী মুছে ফেলার অনুমতি বন্ধ আছে — সুপার এডমিনের সাথে যোগাযোগ করুন');
+        }
+      }
+      return STD.del(id);
+    },
 
     // ── Events ──
     async getEvents(sid){ return EVT.list(sid?{session_id:sid}:null); },
@@ -4079,6 +4114,14 @@ function coOpen(msg,cb,ok='হ্যাঁ, মুছুন'){
 }
 function coClose(){document.getElementById('co').classList.remove('open');confCb=null;}
 function coDo(){if(confCb)confCb();coClose();}
+function infoOpen(msg,title='তথ্য',icon='fa-circle-info',color='var(--ac)'){
+  document.getElementById('info-title').textContent=title;
+  document.getElementById('info-msg').textContent=msg;
+  document.getElementById('info-ico').innerHTML=`<i class="fas ${icon}"></i>`;
+  document.getElementById('info-ico').style.color=color;
+  document.getElementById('info-modal').classList.add('open');
+}
+function infoClose(){document.getElementById('info-modal').classList.remove('open');}
 
 // ================================================================
 // SIDEBAR
@@ -4215,6 +4258,7 @@ function applyRoleUI(res){
     document.getElementById('h-inst-mb').textContent=res.mobile||'';
     document.getElementById('h-inst-id').textContent=res.inst_id||'';
     const sa=document.getElementById('nav-std-add');if(sa)sa.style.display=GLOBAL_STD_ALLOW?'':'none';
+    const sl=document.getElementById('nav-std-list');if(sl)sl.style.display='';
     const en=document.getElementById('ip-inst-name');if(en)en.textContent=res.inst_name||'';
     const ei=document.getElementById('ip-inst-id');if(ei)ei.textContent=res.inst_id||'';
     const em=document.getElementById('ip-cur-mob');if(em)em.textContent=res.mobile||'';
@@ -8019,15 +8063,18 @@ function atRender(){
   document.getElementById('at-cnt').textContent=data.length+' জন';
   // শ্রেণি অনুযায়ী চিপস (পুরো AT_LIST থেকে, সার্চ-ফিল্টার ছাড়া)
   atRenderClsChips();
-  if(!data.length){tb.innerHTML='<tr><td colspan="8" class="te">কোনো উপস্থিতি নেই</td></tr>';return;}
+  if(!data.length){tb.innerHTML='<tr><td colspan="9" class="te">কোনো উপস্থিতি নেই</td></tr>';return;}
   tb.innerHTML=data.map((a,i)=>{
     const st=(window.STDS||[]).find(x=>x.id===a.student_id)||{};
     const tm=new Date(a.scanned_at).toLocaleString('bn-BD');
     const cn=clsName(a.class_id);
+    const photoTd=st.photo?`<img src="${esc(st.photo)}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;border:2px solid var(--bd)">`
+      :`<div class="std-photo" style="width:36px;height:36px"><i class="fas fa-user"></i></div>`;
     const clsTag=cn?`<span class="pay-ses-tag"><i class="fas fa-graduation-cap"></i> ${esc(cn)}</span>`:'<span style="color:var(--mu)">—</span>';
     const rmTag=a.room?`<span class="pay-ses-tag" style="background:rgba(217,164,65,.12);color:var(--ac)"><i class="fas fa-door-open"></i> ${esc(a.room)}</span>`:'<span style="color:var(--mu)">—</span>';
     return `<tr>
       <td>${i+1}</td>
+      <td>${photoTd}</td>
       <td>${esc(st.reg_no||'')}</td>
       <td>${esc(st.roll||'')}</td>
       <td>${esc(st.name_bn||st.name_en||a.student_id.slice(0,8))}</td>
@@ -8274,7 +8321,11 @@ function atMarkBy(payload){
   const doMark=(stu)=>{
     google.script.run.withSuccessHandler(r=>{
       if(r.success){
-        toast((stu.name_bn||stu.name_en||'')+': '+r.message, r.duplicate?'warning':'success');
+        if(r.duplicate){
+          infoOpen((stu.name_bn||stu.name_en||'এই শিক্ষার্থী')+' — ইতিমধ্যে উপস্থিতি নেওয়া হয়ে গেছে।','ইতিমধ্যে উপস্থিত','fa-circle-exclamation','var(--wa)');
+        } else {
+          toast((stu.name_bn||stu.name_en||'')+': '+r.message,'success');
+        }
         atRefreshList();
       } else toast(r.message,'error');
     }).withFailureHandler(e=>toast(e.message,'error'))
