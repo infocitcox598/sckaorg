@@ -10,6 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
   const firebaseConfig = {
@@ -7717,6 +7718,25 @@ function adSaveStdField(id,field,val,idx){
   const d={id};d[field]=val;
   google.script.run.withSuccessHandler(()=>{}).withFailureHandler(e=>toast(e.message,'error')).updateStudentRegRoll(d);
 }
+// ================================================================
+// QR কোড সম্পূর্ণ স্থানীয়ভাবে (offline) তৈরি — নেটওয়ার্ক/CORS নির্ভরতা নেই
+// ================================================================
+function genQrDataUrl(text,size){
+  size=size||140;
+  var tmp=document.createElement('div');
+  tmp.style.cssText='position:fixed;left:-9999px;top:-9999px';
+  document.body.appendChild(tmp);
+  var dataUrl='';
+  try{
+    new QRCode(tmp,{text:text,width:size,height:size,correctLevel:QRCode.CorrectLevel.M});
+    var canvasEl=tmp.querySelector('canvas');
+    var imgEl=tmp.querySelector('img');
+    if(canvasEl && canvasEl.toDataURL) dataUrl=canvasEl.toDataURL('image/png');
+    else if(imgEl && imgEl.src) dataUrl=imgEl.src;
+  }catch(e){ console.error('QR generation error',e); }
+  document.body.removeChild(tmp);
+  return dataUrl;
+}
 function adCardHtml(stu){
   const s=AD_SET||{};
   const subs=AD_SUBJ.filter(x=>x.code||x.name);
@@ -7730,7 +7750,7 @@ function adCardHtml(stu){
   const instName=(INST.find(x=>x.id===stu.inst_id)||{}).inst_name||'';
   // QR এ শিক্ষার্থীর ID, রেজিঃ, রোল — পরীক্ষায় উপস্থিতি স্ক্যানের জন্য
   const qrPayload='SCKAB|ID:'+(stu.id||'')+'|REG:'+(stu.reg_no||'')+'|ROLL:'+(stu.roll||'');
-  const qrUrl='https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=0&data='+encodeURIComponent(qrPayload);
+  const qrUrl=genQrDataUrl(qrPayload,140);
   const photo=stu.photo||'';
   // ওয়াটারমার্ক: টেক্সট "প্রবেশপত্র" — সম্পূর্ণ সাদা-কালো ডিজাইন
   return `<div class="ac">
@@ -7988,12 +8008,42 @@ async function adDownloadPdf(cards, filename){
     toast('PDF তৈরি করা যায়নি','error');
   }
 }
-function adDownloadOnePdf(i){
-  var stu=AD_STDS[i];if(!stu)return;
-  adDownloadPdf([adCardHtml(stu)],'admit-card-'+(stu.roll||i+1)+'.pdf');
+var __photoDataCache={};
+function photoToDataUrl(url){
+  if(!url) return Promise.resolve('');
+  if(__photoDataCache[url]) return Promise.resolve(__photoDataCache[url]);
+  return fetch(url,{mode:'cors'}).then(function(r){
+    if(!r.ok) throw new Error('fetch failed');
+    return r.blob();
+  }).then(function(blob){
+    return new Promise(function(resolve){
+      var reader=new FileReader();
+      reader.onloadend=function(){ __photoDataCache[url]=reader.result; resolve(reader.result); };
+      reader.onerror=function(){ resolve(url); };
+      reader.readAsDataURL(blob);
+    });
+  }).catch(function(){ return url; });
 }
-function adDownloadAllPdf(){
-  adDownloadPdf(AD_STDS.map(function(s){ return adCardHtml(s); }),'admit-cards.pdf');
+async function adBuildCardsForPdf(students){
+  const out=[];
+  for(const stu of students){
+    let card=stu;
+    if(stu.photo){
+      const dataUrl=await photoToDataUrl(stu.photo);
+      card={...stu,photo:dataUrl};
+    }
+    out.push(adCardHtml(card));
+  }
+  return out;
+}
+async function adDownloadOnePdf(i){
+  var stu=AD_STDS[i];if(!stu)return;
+  const cards=await adBuildCardsForPdf([stu]);
+  adDownloadPdf(cards,'admit-card-'+(stu.roll||i+1)+'.pdf');
+}
+async function adDownloadAllPdf(){
+  const cards=await adBuildCardsForPdf(AD_STDS);
+  adDownloadPdf(cards,'admit-cards.pdf');
 }
 
 // =====================================================================
