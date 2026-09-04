@@ -11,6 +11,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
   const firebaseConfig = {
@@ -1072,6 +1073,8 @@ select.fi{padding-left:12px}
       <input type="hidden" id="cls-eid">
       <div class="fg"><label class="fl">শ্রেণির নাম *</label>
         <div class="iw"><i class="fas fa-chalkboard ico"></i><input class="fi" id="cls-enm" required></div></div>
+      <div class="fg"><label class="fl">সরাসরি শিক্ষার্থী আবেদন ফি (৳)</label>
+        <div class="iw"><i class="fas fa-bangladeshi-taka-sign ico"></i><input class="fi" id="cls-efee" type="number" min="0" placeholder="0"></div></div>
       <div class="ma"><button type="button" class="btn btn-ol" onclick="clsMoClose()">বাতিল</button>
         <button type="submit" class="btn btn-pr"><i class="fas fa-save"></i> আপডেট</button></div>
     </form>
@@ -1984,8 +1987,127 @@ select.fi{padding-left:12px}
           <i class="fas fa-file-signature"></i> সদস্য হতে আবেদন করুন
         </button>
       </div>
+      <div class="l-app">
+        <button onclick="daOpen()" class="l-app-btn" style="background:rgba(22,163,74,.1);border-color:rgba(22,163,74,.35);color:#16a34a">
+          <i class="fas fa-user-graduate"></i> সরাসরি শিক্ষার্থী আবেদন করুন
+        </button>
+      </div>
     </div>
     <div class="l-footer"> SCKA Org. সর্বস্বত্ব সংরক্ষিত।</div>
+  </div>
+</div>
+
+<!-- ══════ সরাসরি শিক্ষার্থী আবেদন (DIRECT APPLICATION) ══════ -->
+<div id="pg-dapp-public" style="display:none;min-height:100vh;background:var(--bg2,#f2f5f8);padding:18px 12px 40px">
+  <div style="max-width:560px;margin:0 auto">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <button onclick="daClose()" class="btn btn-ol btn-sm"><i class="fas fa-arrow-left"></i></button>
+      <div style="font-weight:800;font-size:1.05rem;color:var(--pr)"><i class="fas fa-user-graduate"></i> সরাসরি শিক্ষার্থী আবেদন</div>
+    </div>
+
+    <!-- STEP 1: প্রতিষ্ঠান নির্বাচন -->
+    <div id="da-step-inst" class="card">
+      <div class="ch"><div class="ct"><i class="fas fa-university"></i> প্রতিষ্ঠান নির্বাচন করুন</div></div>
+      <div class="iw" style="margin-bottom:12px">
+        <i class="fas fa-search ico"></i>
+        <input class="fi" id="da-inst-q" placeholder="প্রতিষ্ঠানের নাম লিখে খুঁজুন..." oninput="daFilterInst()">
+      </div>
+      <div id="da-inst-list" style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow:auto"><div class="te" style="text-align:center;padding:20px"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- STEP 2: সেশন ও পরীক্ষা -->
+    <div id="da-step-sess" class="card" style="display:none">
+      <div class="ch"><div class="ct"><i class="fas fa-calendar"></i> সেশন ও পরীক্ষা নির্বাচন</div></div>
+      <div style="font-size:.8rem;color:var(--mu);margin-bottom:12px"><i class="fas fa-university"></i> <b id="da-sel-inst-name"></b></div>
+      <div class="fg"><label class="fl">সেশন *</label>
+        <select class="fi" id="da-sess" onchange="daSessChange()" required><option value="">সেশন বেছে নিন</option></select></div>
+      <div class="fg"><label class="fl">পরীক্ষা *</label>
+        <select class="fi" id="da-exam" required><option value="">-- আগে সেশন বেছে নিন --</option></select></div>
+      <div class="ma" style="justify-content:space-between">
+        <button class="btn btn-ol" onclick="daGoStep('inst')"><i class="fas fa-arrow-left"></i> পূর্ববর্তী</button>
+        <button class="btn btn-pr" onclick="daStep2Next()">পরবর্তী <i class="fas fa-arrow-right"></i></button>
+      </div>
+    </div>
+
+    <!-- STEP 3: শিক্ষার্থীর আবেদন ফরম -->
+    <div id="da-step-form" class="card" style="display:none">
+      <div class="ch"><div class="ct"><i class="fas fa-file-signature"></i> শিক্ষার্থীর তথ্য</div></div>
+      <input type="hidden" id="da-photo-data">
+      <div class="fg"><label class="fl">শ্রেণি *</label>
+        <select class="fi" id="da-cls" onchange="daClsChange()" required><option value="">শ্রেণি বেছে নিন</option></select></div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">নাম (বাংলা) *</label>
+          <div class="iw"><i class="fas fa-user ico"></i><input class="fi" id="da-nm-bn" required></div></div>
+        <div class="fg"><label class="fl">Name (English)</label>
+          <div class="iw"><i class="fas fa-user-tag ico"></i><input class="fi" id="da-nm-en"></div></div>
+      </div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">পিতার নাম *</label>
+          <div class="iw"><i class="fas fa-male ico"></i><input class="fi" id="da-father" required></div></div>
+        <div class="fg"><label class="fl">মাতার নাম *</label>
+          <div class="iw"><i class="fas fa-female ico"></i><input class="fi" id="da-mother" required></div></div>
+      </div>
+      <div class="fgrid">
+        <div class="fg"><label class="fl">জন্ম তারিখ *</label>
+          <div class="iw"><i class="fas fa-calendar-days ico"></i><input class="fi" id="da-dob" type="date" required></div></div>
+        <div class="fg"><label class="fl">অভিভাবকের মোবাইল *</label>
+          <div class="iw"><i class="fas fa-phone ico"></i><input class="fi" id="da-mobile" required></div></div>
+      </div>
+      <div class="fg"><label class="fl">ছবি — Google Drive লিংক দিন <span style="color:var(--mu);font-weight:400">অথবা</span> সরাসরি আপলোড করুন (ঐচ্ছিক)</label>
+        <div class="iw"><i class="fab fa-google-drive ico"></i><input class="fi" id="da-photo-link" placeholder="https://drive.google.com/file/d/..." oninput="daPhotoLinkTyped()"></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+          <input type="file" id="da-photo-file" accept="image/*" style="display:none" onchange="daUploadPhoto(this)">
+          <button type="button" class="btn btn-ol btn-sm" onclick="document.getElementById('da-photo-file').click()">
+            <i class="fas fa-upload"></i> ছবি আপলোড করুন
+          </button>
+          <span id="da-photo-status" style="font-size:.78rem;color:var(--mu)"></span>
+        </div>
+      </div>
+      <div class="ma" style="justify-content:space-between">
+        <button class="btn btn-ol" onclick="daGoStep('sess')"><i class="fas fa-arrow-left"></i> পূর্ববর্তী</button>
+        <button class="btn btn-pr" onclick="daStep3Next()">পরবর্তী <i class="fas fa-arrow-right"></i></button>
+      </div>
+    </div>
+
+    <!-- STEP 4: পেমেন্ট -->
+    <div id="da-step-pay" class="card" style="display:none">
+      <div class="ch"><div class="ct"><i class="fas fa-money-bill-wave"></i> আবেদন ফি পরিশোধ</div></div>
+      <div class="sub-sum-box">
+        <div class="sub-sum-lbl">আবেদন ফি</div>
+        <div class="sub-sum-amt" id="da-fee-amt">৳ 0</div>
+      </div>
+      <div id="da-nums-area" style="margin:14px 0"></div>
+      <div class="fg"><label class="fl">পেমেন্ট পদ্ধতি *</label>
+        <div class="pay-method-row" id="da-method-row">
+          <label class="pay-method-btn" onclick="selMethod(this)">
+            <input type="radio" name="da-method" value="বিকাশ" required>
+            <div class="pay-meth-ic" style="background:#e2136e1a;color:#e2136e"><i class="fas fa-mobile-screen-button"></i></div>
+            <span style="font-weight:700;font-size:.88rem">বিকাশ</span>
+          </label>
+          <label class="pay-method-btn" onclick="selMethod(this)">
+            <input type="radio" name="da-method" value="নগদ">
+            <div class="pay-meth-ic" style="background:#f47c211a;color:#f47c21"><i class="fas fa-mobile-alt"></i></div>
+            <span style="font-weight:700;font-size:.88rem">নগদ</span>
+          </label>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">ট্রানজেকশন আইডি *</label>
+        <div class="iw"><i class="fas fa-hashtag ico"></i><input class="fi" id="da-txn" placeholder="ট্রানজেকশন নম্বর লিখুন" required></div></div>
+      <div class="ma" style="justify-content:space-between">
+        <button class="btn btn-ol" onclick="daGoStep('form')"><i class="fas fa-arrow-left"></i> পূর্ববর্তী</button>
+        <button class="btn btn-ok" id="da-submit-btn" onclick="daSubmit()"><i class="fas fa-paper-plane"></i> আবেদন জমা দিন</button>
+      </div>
+    </div>
+
+    <!-- STEP 5: সম্পন্ন -->
+    <div id="da-step-done" class="card" style="display:none;text-align:center">
+      <div style="font-size:2.6rem;color:var(--ok);margin-bottom:10px"><i class="fas fa-circle-check"></i></div>
+      <div style="font-weight:800;font-size:1.1rem;margin-bottom:6px">আবেদন সফলভাবে জমা হয়েছে!</div>
+      <div style="font-size:.85rem;color:var(--mu);margin-bottom:16px">আবেদন নম্বর: <b id="da-done-appno"></b></div>
+      <div style="font-size:.8rem;color:var(--mu);margin-bottom:20px">প্রতিষ্ঠান কর্তৃপক্ষ আবেদন যাচাই করে অনুমোদন দিলে আপনি শিক্ষার্থী তালিকায় যুক্ত হবেন।</div>
+      <button class="btn btn-pr" onclick="daDownloadPdf()"><i class="fas fa-download"></i> আবেদনপত্র PDF ডাউনলোড</button>
+      <button class="btn btn-ol" style="margin-top:10px" onclick="daClose()"><i class="fas fa-home"></i> লগইন পেজে ফিরে যান</button>
+    </div>
   </div>
 </div>
 
@@ -2038,6 +2160,10 @@ select.fi{padding-left:12px}
         <i class="fas fa-calendar-check"></i> ইভেন্ট<span class="bdg" id="evt-cnt">0</span></button>
       <button class="ni" id="nav-apps" onclick="goPage('apps')">
         <i class="fas fa-file-signature"></i> সদস্য আবেদন<span class="bdg" id="apps-cnt">0</span></button>
+      <button class="ni" id="nav-dapp" onclick="goPage('dapp')">
+        <i class="fas fa-user-graduate"></i> সরাসরি শিক্ষার্থী আবেদন<span class="bdg" id="dapp-cnt">0</span></button>
+      <button class="ni" id="nav-fee" onclick="goPage('fee')">
+        <i class="fas fa-sack-dollar"></i> ফি ব্যবস্থাপনা</button>
 
       <!-- Institution payment at top of its menu section -->
       <button class="ni" id="nav-pay-inst" onclick="goPage('pay-inst')" style="display:none">
@@ -2164,6 +2290,10 @@ select.fi{padding-left:12px}
               <i class="fas fa-chalkboard ico"></i>
               <input class="fi" id="cls-new-nm" placeholder="শ্রেণির নাম (যেমন: ষষ্ঠ, Class 6)" onkeydown="if(event.key==='Enter'){event.preventDefault();clsAdd();}">
             </div>
+            <div class="iw" style="width:150px">
+              <i class="fas fa-bangladeshi-taka-sign ico"></i>
+              <input class="fi" id="cls-new-fee" type="number" min="0" placeholder="আবেদন ফি" onkeydown="if(event.key==='Enter'){event.preventDefault();clsAdd();}">
+            </div>
             <button class="btn btn-ok" onclick="clsAdd()" id="cls-add-btn"><i class="fas fa-plus"></i> যুক্ত করুন</button>
           </div>
         </div>
@@ -2242,6 +2372,58 @@ select.fi{padding-left:12px}
               <tbody id="apps-tb">
                 <tr><td colspan="7" class="te"><div class="spinner"></div></td></tr>
               </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── সরাসরি শিক্ষার্থী আবেদন (DIRECT APPLICATIONS) PAGE ── -->
+      <div class="pv" id="pg-dapp">
+        <div class="ptb">
+          <div><div class="pt"><i class="fas fa-user-graduate"></i> সরাসরি শিক্ষার্থী আবেদন তালিকা</div>
+            <div class="pbc"><i class="fas fa-home"></i> হোম <i class="fas fa-chevron-right"></i> সরাসরি শিক্ষার্থী আবেদন</div></div>
+        </div>
+        <div class="card">
+          <div class="ch">
+            <div class="ct"><i class="fas fa-list-ul"></i> আবেদন তালিকা (<span id="dapp-count">0</span>)</div>
+            <input class="fi ni2" id="dapp-q" type="text" placeholder="🔍 নাম/আবেদন নম্বর খুঁজুন..."
+              style="padding:8px 12px;max-width:220px" oninput="dappFilter()">
+          </div>
+          <div class="tw">
+            <table>
+              <thead><tr>
+                <th>#</th><th>আবেদন নং</th><th>নাম</th><th>প্রতিষ্ঠান</th><th>শ্রেণি</th>
+                <th>ফি</th><th>ট্রানজেকশন</th><th>সময়</th><th>অ্যাকশন</th>
+              </tr></thead>
+              <tbody id="dapp-tb">
+                <tr><td colspan="9" class="te"><div class="spinner"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ফি ব্যবস্থাপনা (FEE MANAGEMENT) PAGE ── -->
+      <div class="pv" id="pg-fee">
+        <div class="ptb">
+          <div><div class="pt"><i class="fas fa-sack-dollar"></i> ফি ব্যবস্থাপনা</div>
+            <div class="pbc"><i class="fas fa-home"></i> হোম <i class="fas fa-chevron-right"></i> ফি ব্যবস্থাপনা</div></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct"><i class="fas fa-calendar"></i> সেশন নির্বাচন করুন</div></div>
+          <select class="fi" id="fee-ses" style="max-width:320px" onchange="feeSesChange()">
+            <option value="">সেশন বেছে নিন</option>
+          </select>
+        </div>
+        <div class="card" id="fee-list-card" style="display:none">
+          <div class="ch">
+            <div class="ct"><i class="fas fa-chalkboard"></i> শ্রেণি অনুযায়ী আবেদন ফি</div>
+            <button class="btn btn-ok btn-sm" onclick="feeSaveAll()"><i class="fas fa-save"></i> সব সংরক্ষণ করুন</button>
+          </div>
+          <div class="tw">
+            <table>
+              <thead><tr><th>শ্রেণি</th><th style="width:180px">আবেদন ফি (৳)</th></tr></thead>
+              <tbody id="fee-tb"></tbody>
             </table>
           </div>
         </div>
@@ -3281,6 +3463,8 @@ select.fi{padding-left:12px}
                   <div class="iw"><i class="fas fa-phone ico"></i><input class="fi" id="s-mb"></div></div>
                 <div class="fg"><label class="fl">অ্যাডমিন ইমেইল <span style="font-size:.74rem;color:var(--mu)">(আবেদন নোটিফিকেশনের জন্য)</span></label>
                   <div class="iw"><i class="fas fa-envelope ico"></i><input class="fi" id="s-email" type="email" placeholder="admin@example.com"></div></div>
+                <div class="fg"><label class="fl">Google Drive Upload OAuth Client ID <span style="font-size:.74rem;color:var(--mu)">(ছবি সরাসরি Drive-এ আপলোডের জন্য, ঐচ্ছিক)</span></label>
+                  <div class="iw"><i class="fab fa-google ico"></i><input class="fi" id="s-drive-cid" placeholder="xxxxxx.apps.googleusercontent.com"></div></div>
                 <button type="submit" class="btn btn-pr" style="width:100%"><i class="fas fa-save"></i> সংরক্ষণ করুন</button>
               </form>
             </div>
@@ -3474,6 +3658,7 @@ select.fi{padding-left:12px}
   const PNUM=crud('payment_numbers');
   const MEM =crud('members');
   const APP =crud('member_applications');
+  const DAPP=crud('direct_applications');
   const PAY =crud('payment_bills');
   const PSUB=crud('payment_submissions',{mapIn:d=>{const o={...d};['inst_name','session_name','class_name'].forEach(k=>delete o[k]);return o;}});
   const BANK=crud('bank_transactions');
@@ -3519,7 +3704,7 @@ select.fi{padding-left:12px}
 
     async getPublicSettings(){
       const s=await loadSettings();
-      return {success:true,data:{inst_name:s.inst_name||'অ্যাডমিন ড্যাশবোর্ড',address:s.address||'',mobile:s.mobile||'',logo_url:s.logo_url||''}};
+      return {success:true,data:{inst_name:s.inst_name||'অ্যাডমিন ড্যাশবোর্ড',address:s.address||'',mobile:s.mobile||'',logo_url:s.logo_url||'',drive_upload_client_id:s.drive_upload_client_id||''}};
     },
     async getSettings(){
       const s=await loadSettings();
@@ -3911,6 +4096,60 @@ select.fi{padding-left:12px}
     // ── Member applications ──
     async getApplications(){ return APP.list(); },
     async submitMemberApplication(d){ return APP.add({...d,status:'নতুন'}); },
+
+    // ── সরাসরি শিক্ষার্থী আবেদন (Direct Application) ──
+    async getPublicInstitutionsList(){
+      const r=await INSTx.list();
+      const data=(r.data||[]).filter(i=>(i.status||'সক্রিয়')==='সক্রিয়').map(i=>({id:i.id,inst_name:i.inst_name,address:i.address||''}));
+      return {success:true,data};
+    },
+    async getClassFee(classId){
+      try{
+        const snap=await db.collection('classes').doc(String(classId)).get();
+        if(!snap.exists) return {success:true,fee:0};
+        return {success:true,fee:Number(snap.data().admission_fee||0)};
+      }catch(e){ return err(e.message); }
+    },
+    async submitDirectApplication(d){
+      if(!d.name_bn||!d.inst_id||!d.session_id||!d.class_id) return err('আবশ্যক তথ্য অনুপস্থিত');
+      if(!d.txn_id) return err('ট্রানজেকশন আইডি দিন');
+      const appNo='DA'+Date.now().toString().slice(-8);
+      const r=await DAPP.add({...d,status:'অপেক্ষমাণ',app_no:appNo});
+      if(!r.success) return r;
+      return {success:true,message:'আবেদন সফলভাবে জমা হয়েছে',app_no:appNo,id:r.id};
+    },
+    async getDirectApplications(){ return DAPP.list(); },
+    async getDirectApplicationById(id){
+      try{
+        const snap=await db.collection('direct_applications').doc(String(id)).get();
+        if(!snap.exists) return err('আবেদন পাওয়া যায়নি');
+        return {success:true,data:{id:snap.id,...snap.data()}};
+      }catch(e){ return err(e.message); }
+    },
+    async approveDirectApplication(id){
+      try{
+        const snap=await db.collection('direct_applications').doc(String(id)).get();
+        if(!snap.exists) return err('আবেদন পাওয়া যায়নি');
+        const d=snap.data();
+        await db.collection('students').add({
+          inst_id:d.inst_id||'',inst_name:d.inst_name||'',
+          session_id:d.session_id||'',session_name:d.session_name||'',
+          class_id:d.class_id||'',class_name:d.class_name||'',
+          name_bn:d.name_bn||'',name_en:d.name_en||'',
+          father_name:d.father_name||'',mother_name:d.mother_name||'',
+          dob:d.dob||'',roll:'',inst_mobile:'',guardian_mobile:d.guardian_mobile||'',
+          photo:d.photo||'',created_at:Date.now()
+        });
+        await db.collection('direct_applications').doc(String(id)).delete();
+        return ok('আবেদন অনুমোদিত হয়েছে ও শিক্ষার্থী তালিকায় যুক্ত হয়েছে');
+      }catch(e){ return err(e.message); }
+    },
+    async rejectDirectApplication(id){
+      try{
+        await db.collection('direct_applications').doc(String(id)).delete();
+        return ok('আবেদন বাতিল করা হয়েছে');
+      }catch(e){ return err(e.message); }
+    },
     async updateApplication(d){ return APP.update(d); },
     async deleteApplication(id){ return APP.del(id); },
 
@@ -4054,6 +4293,7 @@ document.addEventListener('DOMContentLoaded',()=>{
           limg.style.display='block';
           if(lph)lph.style.display='none';
         }
+        window.__DRIVE_UPLOAD_CID=d.drive_upload_client_id||'';
       }
     })
     .withFailureHandler(()=>{})
@@ -4232,7 +4472,7 @@ function applyRoleUI(res){
   const isAdminR=res.role==='admin';
   document.getElementById('rbdg').textContent=isInst?'প্রতিষ্ঠান':(isStaff?'স্টাফ':'ADMIN');
   // All admin nav items - hidden for institution AND staff
-  ['nav-inst','nav-set','nav-notice','nav-pay-admin','nav-pay-nums','nav-members','nav-events','nav-exams','nav-attend','nav-finance','nav-stmt','nav-apps','nav-staff','nav-ses','nav-std-add','nav-std-list','sb-sc-acad','sb-sc-fin','sb-sc-comm'].forEach(id=>{
+  ['nav-inst','nav-set','nav-notice','nav-pay-admin','nav-pay-nums','nav-members','nav-events','nav-exams','nav-attend','nav-finance','nav-stmt','nav-apps','nav-dapp','nav-fee','nav-staff','nav-ses','nav-std-add','nav-std-list','sb-sc-acad','sb-sc-fin','sb-sc-comm'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.style.display=isAdminR?'':'none';
   });
   // Admit card visibility
@@ -4348,7 +4588,7 @@ function clearRenderedContent(){
 function doLogout(){
   try{ window.__curAdminId=null; }catch(e){}
   CU='';CR='admin';CP={};CUR_INST_ROW_ID='';SESS=[];CLS=[];INST=[];STDS=[];NTCS=[];SETS={};GLOBAL_STD_ALLOW=true;ADMIT_INST_ALLOW=false;PAY_DATA=[];INST_PAY_DATA=[];ADMIN_SUBS=[];PAY_NUMS=[];
-  ['nav-inst','nav-set','nav-notice','nav-std-add','nav-pay-admin','nav-pay-nums','nav-members','nav-events','nav-exams','nav-admit','nav-attend','nav-finance','nav-stmt','nav-apps','hdr-set-btn','perm-card','global-std-card','db-inst-card']
+  ['nav-inst','nav-set','nav-notice','nav-std-add','nav-pay-admin','nav-pay-nums','nav-members','nav-events','nav-exams','nav-admit','nav-attend','nav-finance','nav-stmt','nav-apps','nav-dapp','nav-fee','hdr-set-btn','perm-card','global-std-card','db-inst-card']
     .forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='';});
   ['nav-inst-set','nav-pay-inst'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
   goPage('db');
@@ -4408,7 +4648,7 @@ function goPage(p,fromPop){
     if(CP.finance) allowed.push('finance');
     if(!allowed.includes(p)){ toast('এই পেজে আপনার অনুমতি নেই','error'); p='db'; }
   }
-  ['db','ses','cls','inst','inst-view','notice','pay-admin','pay-inst','pay-nums','members','events','exams','admit','attend','finance','stmt','apps','std-add','std-list','inst-set','set','staff'].forEach(k=>{
+  ['db','ses','cls','inst','inst-view','notice','pay-admin','pay-inst','pay-nums','members','events','exams','admit','attend','finance','stmt','apps','dapp','fee','std-add','std-list','inst-set','set','staff'].forEach(k=>{
     const pg=document.getElementById('pg-'+k);if(pg)pg.classList.remove('active');
     const n=document.getElementById('nav-'+k);if(n)n.classList.remove('active');
   });
@@ -4432,6 +4672,8 @@ function goPage(p,fromPop){
   if(p==='stmt')stmtLoad();
 
   if(p==='apps')appsInit();
+  if(p==='dapp')dappInit();
+  if(p==='fee')feeInit();
   if(p==='pay-inst')instPayInit();
   if(p==='std-add')stdPageInit();
   if(p==='std-list'){
@@ -4497,6 +4739,7 @@ function applySettings(){
   document.getElementById('s-nm').value=n;document.getElementById('s-ad').value=a;
   document.getElementById('s-mb').value=m;document.getElementById('s-lg').value=l;
   const se=document.getElementById('s-email');if(se)se.value=SETS.admin_email||'';
+  const sdc=document.getElementById('s-drive-cid');if(sdc)sdc.value=SETS.drive_upload_client_id||'';
 }
 function setHdr(n,a,m,l){
   // This sets the ADMIN (super admin) info in the header
@@ -4514,7 +4757,8 @@ function settSave(e){
   e.preventDefault();
   const d={logo_url:toDriveDirectUrl(document.getElementById('s-lg').value.trim()),inst_name:document.getElementById('s-nm').value.trim(),
     address:document.getElementById('s-ad').value.trim(),mobile:document.getElementById('s-mb').value.trim(),
-    admin_email:(document.getElementById('s-email')||{}).value?.trim()||''};
+    admin_email:(document.getElementById('s-email')||{}).value?.trim()||'',
+    drive_upload_client_id:(document.getElementById('s-drive-cid')||{}).value?.trim()||''};
   const btn=e.submitter;btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>...';
   google.script.run.withSuccessHandler(res=>{
     btn.disabled=false;btn.innerHTML='<i class="fas fa-save"></i> সংরক্ষণ করুন';
@@ -4636,8 +4880,9 @@ function clsRender(list){
     <div class="cls-card">
       <div class="cls-card-num">${i+1}</div>
       <div class="cls-card-nm">${esc(cl.class_name)}</div>
+      <div style="font-size:.72rem;color:var(--mu);margin-top:2px">আবেদন ফি: ৳${cl.admission_fee||0}</div>
       ${isAdmin?`<div class="cls-card-acts">
-        <button class="btn btn-wa btn-icon btn-sm" onclick="clsEditOpen('${esc(cl.id)}','${esc(cl.class_name)}')"><i class="fas fa-edit" style="font-size:.78rem"></i></button>
+        <button class="btn btn-wa btn-icon btn-sm" onclick="clsEditOpen('${esc(cl.id)}','${esc(cl.class_name)}',${cl.admission_fee||0})"><i class="fas fa-edit" style="font-size:.78rem"></i></button>
         <button class="btn btn-er btn-icon btn-sm" onclick="clsDelConf('${esc(cl.id)}','${esc(cl.class_name)}')"><i class="fas fa-trash" style="font-size:.78rem"></i></button>
       </div>`:''}
     </div>`).join('');
@@ -4650,24 +4895,26 @@ function clsFilter(){
 }
 function clsAdd(){
   const nm=document.getElementById('cls-new-nm').value.trim();
+  const fee=Number(document.getElementById('cls-new-fee').value)||0;
   if(!nm){toast('শ্রেণির নাম লিখুন','warning');return;}
   const btn=document.getElementById('cls-add-btn');
   btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>...';
   google.script.run.withSuccessHandler(res=>{
     btn.disabled=false;btn.innerHTML='<i class="fas fa-plus"></i> যুক্ত করুন';
-    if(res.success){document.getElementById('cls-new-nm').value='';CLS=CLS.filter(c=>String(c.session_id)!==String(curSesId));CLS.push(...res.data);clsRender(res.data);updateStats();sesRender();dbSesRender();toast(res.message);}
+    if(res.success){document.getElementById('cls-new-nm').value='';document.getElementById('cls-new-fee').value='';CLS=CLS.filter(c=>String(c.session_id)!==String(curSesId));CLS.push(...res.data);clsRender(res.data);updateStats();sesRender();dbSesRender();toast(res.message);}
     else toast(res.message,'error');
-  }).withFailureHandler(err=>{btn.disabled=false;toast('ত্রুটি: '+err.message,'error');}).addClass({session_id:curSesId,class_name:nm});
+  }).withFailureHandler(err=>{btn.disabled=false;toast('ত্রুটি: '+err.message,'error');}).addClass({session_id:curSesId,class_name:nm,admission_fee:fee});
 }
-function clsEditOpen(id,nm){document.getElementById('cls-eid').value=id;document.getElementById('cls-enm').value=nm;document.getElementById('cls-mo').classList.add('open');}
+function clsEditOpen(id,nm,fee){document.getElementById('cls-eid').value=id;document.getElementById('cls-enm').value=nm;document.getElementById('cls-efee').value=fee||'';document.getElementById('cls-mo').classList.add('open');}
 function clsMoClose(){document.getElementById('cls-mo').classList.remove('open');}
 function clsEditSave(e){
   e.preventDefault();
   const id=document.getElementById('cls-eid').value,nm=document.getElementById('cls-enm').value.trim();
+  const fee=Number(document.getElementById('cls-efee').value)||0;
   google.script.run.withSuccessHandler(res=>{
     if(res.success){clsMoClose();CLS=CLS.filter(c=>String(c.session_id)!==String(curSesId));CLS.push(...res.data);clsRender(res.data);updateStats();sesRender();dbSesRender();toast(res.message);}
     else toast(res.message,'error');
-  }).withFailureHandler(()=>toast('ত্রুটি','error')).updateClass({id,class_name:nm});
+  }).withFailureHandler(()=>toast('ত্রুটি','error')).updateClass({id,class_name:nm,admission_fee:fee});
 }
 function clsDelConf(id,nm){coOpen(`"${nm}" শ্রেণিটি মুছে ফেলবেন?`,()=>clsDel(id));}
 function clsDel(id){
@@ -6533,6 +6780,278 @@ function phEditSave(e){
 }
 
 // ================================================================
+// সরাসরি শিক্ষার্থী আবেদন (DIRECT APPLICATION - public, no login)
+// ================================================================
+let DA_INSTS=[], DA_SEL={inst:null,session:null,exam:null,cls:null,fee:0};
+
+function daOpen(){
+  document.getElementById('pg-login').classList.add('hidden');
+  document.getElementById('pg-dapp-public').style.display='block';
+  resetViewScroll();
+  DA_SEL={inst:null,session:null,exam:null,cls:null,fee:0};
+  daGoStep('inst');
+  document.getElementById('da-inst-q').value='';
+  google.script.run.withSuccessHandler(res=>{
+    DA_INSTS=(res&&res.data)||[];
+    daRenderInstList(DA_INSTS);
+  }).withFailureHandler(()=>{ document.getElementById('da-inst-list').innerHTML='<div class="te" style="text-align:center;color:var(--er)">লোড ব্যর্থ</div>'; })
+    .getPublicInstitutionsList();
+}
+function daClose(){
+  document.getElementById('pg-dapp-public').style.display='none';
+  document.getElementById('pg-login').classList.remove('hidden');
+}
+function daGoStep(step){
+  ['inst','sess','form','pay','done'].forEach(s=>{
+    const el=document.getElementById('da-step-'+s);if(el)el.style.display=(s===step?'':'none');
+  });
+}
+function daRenderInstList(list){
+  const box=document.getElementById('da-inst-list');
+  if(!list.length){box.innerHTML='<div class="te" style="text-align:center;padding:20px;color:var(--mu)">কোনো প্রতিষ্ঠান পাওয়া যায়নি</div>';return;}
+  box.innerHTML=list.map(i=>`
+    <div onclick='daSelectInst(${esc(JSON.stringify(i.id))},${esc(JSON.stringify(i.inst_name))})'
+      style="border:1px solid var(--bd);border-radius:9px;padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:10px" onmouseover="this.style.borderColor='var(--ac)'" onmouseout="this.style.borderColor='var(--bd)'">
+      <i class="fas fa-university" style="color:var(--ac)"></i>
+      <div><div style="font-weight:700;font-size:.92rem">${esc(i.inst_name)}</div>
+      ${i.address?`<div style="font-size:.74rem;color:var(--mu)">${esc(i.address)}</div>`:''}</div>
+    </div>`).join('');
+}
+function daFilterInst(){
+  const q=document.getElementById('da-inst-q').value.trim().toLowerCase();
+  daRenderInstList(q?DA_INSTS.filter(i=>(i.inst_name||'').toLowerCase().includes(q)):DA_INSTS);
+}
+function daSelectInst(id,name){
+  DA_SEL.inst={id,name};
+  document.getElementById('da-sel-inst-name').textContent=name;
+  daGoStep('sess');
+  const sel=document.getElementById('da-sess');
+  sel.innerHTML='<option value="">লোড হচ্ছে...</option>';
+  document.getElementById('da-exam').innerHTML='<option value="">-- আগে সেশন বেছে নিন --</option>';
+  google.script.run.withSuccessHandler(res=>{
+    const list=(res&&res.data)||[];
+    sel.innerHTML='<option value="">সেশন বেছে নিন</option>'+list.map(s=>`<option value="${esc(s.id)}">${esc(s.session_name||s.name)}</option>`).join('');
+  }).withFailureHandler(()=>{sel.innerHTML='<option value="">লোড ব্যর্থ</option>';}).getSessions();
+}
+function daSessChange(){
+  const sid=document.getElementById('da-sess').value;
+  const exSel=document.getElementById('da-exam');
+  exSel.innerHTML='<option value="">লোড হচ্ছে...</option>';
+  if(!sid){exSel.innerHTML='<option value="">-- আগে সেশন বেছে নিন --</option>';return;}
+  google.script.run.withSuccessHandler(res=>{
+    const list=(res&&res.data)||[];
+    exSel.innerHTML='<option value="">পরীক্ষা বেছে নিন</option>'+list.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join('');
+  }).withFailureHandler(()=>{exSel.innerHTML='<option value="">লোড ব্যর্থ</option>';}).getExams(sid);
+}
+function daStep2Next(){
+  const sid=document.getElementById('da-sess').value;
+  const eid=document.getElementById('da-exam').value;
+  if(!sid){toast('সেশন বেছে নিন','warning');return;}
+  if(!eid){toast('পরীক্ষা বেছে নিন','warning');return;}
+  const sTxt=document.getElementById('da-sess').selectedOptions[0].textContent;
+  const eTxt=document.getElementById('da-exam').selectedOptions[0].textContent;
+  DA_SEL.session={id:sid,name:sTxt};
+  DA_SEL.exam={id:eid,name:eTxt};
+  const clsSel=document.getElementById('da-cls');
+  clsSel.innerHTML='<option value="">লোড হচ্ছে...</option>';
+  google.script.run.withSuccessHandler(res=>{
+    const list=(res&&res.data)||[];
+    clsSel.innerHTML='<option value="">শ্রেণি বেছে নিন</option>'+list.map(c=>`<option value="${esc(c.id)}" data-fee="${c.admission_fee||0}">${esc(c.class_name)}</option>`).join('');
+  }).withFailureHandler(()=>{clsSel.innerHTML='<option value="">লোড ব্যর্থ</option>';}).getClasses(sid);
+  daGoStep('form');
+}
+function daClsChange(){
+  const opt=document.getElementById('da-cls').selectedOptions[0];
+  DA_SEL.cls=opt&&opt.value?{id:opt.value,name:opt.textContent,fee:Number(opt.dataset.fee||0)}:null;
+}
+function daPhotoLinkTyped(){
+  // ম্যানুয়ালি লিংক টাইপ করলে আগের আপলোড করা ছবির ডেটা মুছে দাও (সংঘাত এড়াতে)
+  document.getElementById('da-photo-data').value='';
+  const st=document.getElementById('da-photo-status');if(st)st.textContent='';
+}
+let __gDriveTokenClient=null,__gDriveAccessToken=null;
+function daUploadPhoto(fileInput){
+  const file=fileInput.files&&fileInput.files[0];
+  if(!file)return;
+  const status=document.getElementById('da-photo-status');
+  const cid=window.__DRIVE_UPLOAD_CID;
+  if(!cid){
+    status.textContent='ছবি আপলোড সুবিধা চালু নেই — Drive লিংক ব্যবহার করুন';
+    status.style.color='var(--er)';
+    fileInput.value='';
+    return;
+  }
+  if(!file.type.startsWith('image/')){toast('শুধুমাত্র ছবি আপলোড করা যাবে','warning');fileInput.value='';return;}
+  if(file.size>8*1024*1024){toast('ছবির আকার ৮MB এর কম হতে হবে','warning');fileInput.value='';return;}
+  if(typeof google==='undefined'||!google.accounts||!google.accounts.oauth2){
+    status.textContent='Google লাইব্রেরি লোড হয়নি, একটু পর আবার চেষ্টা করুন';
+    status.style.color='var(--er)';
+    return;
+  }
+  status.style.color='var(--mu)';
+  status.textContent='Google অনুমতি লাগবে...';
+  const doUpload=()=>{
+    status.textContent='আপলোড হচ্ছে...';
+    const meta={name:'application-photo-'+Date.now()+'-'+file.name,mimeType:file.type};
+    const form=new FormData();
+    form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
+    form.append('file',file);
+    fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+__gDriveAccessToken},
+      body:form
+    }).then(r=>{ if(!r.ok) throw new Error('আপলোড ব্যর্থ ('+r.status+')'); return r.json(); })
+    .then(f=>{
+      // ফাইলটা যেকেউ লিংক দিয়ে দেখতে পারবে এমন পারমিশন দাও
+      return fetch('https://www.googleapis.com/drive/v3/files/'+f.id+'/permissions',{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+__gDriveAccessToken,'Content-Type':'application/json'},
+        body:JSON.stringify({role:'reader',type:'anyone'})
+      }).then(()=>f.id);
+    }).then(fileId=>{
+      const url='https://lh3.googleusercontent.com/d/'+fileId;
+      document.getElementById('da-photo-data').value=url;
+      document.getElementById('da-photo-link').value='';
+      status.style.color='var(--ok)';
+      status.innerHTML='<i class="fas fa-circle-check"></i> ছবি সফলভাবে আপলোড হয়েছে';
+    }).catch(e=>{
+      status.style.color='var(--er)';
+      status.textContent='আপলোড ব্যর্থ: '+e.message;
+    });
+  };
+  if(__gDriveAccessToken){ doUpload(); return; }
+  if(!__gDriveTokenClient){
+    __gDriveTokenClient=google.accounts.oauth2.initTokenClient({
+      client_id:cid,
+      scope:'https://www.googleapis.com/auth/drive.file',
+      callback:(resp)=>{
+        if(resp&&resp.access_token){ __gDriveAccessToken=resp.access_token; doUpload(); }
+        else{ status.style.color='var(--er)';status.textContent='অনুমতি দেওয়া হয়নি'; }
+      }
+    });
+  }
+  __gDriveTokenClient.requestAccessToken();
+}
+function daStep3Next(){
+  if(!DA_SEL.cls){toast('শ্রেণি বেছে নিন','warning');return;}
+  const req=['da-nm-bn','da-father','da-mother','da-dob','da-mobile'];
+  for(const id of req){ if(!document.getElementById(id).value.trim()){toast('সকল আবশ্যক (*) তথ্য পূরণ করুন','warning');return;} }
+  const photoLink=document.getElementById('da-photo-link').value.trim();
+  if(photoLink) document.getElementById('da-photo-data').value=toDriveDirectUrl(photoLink);
+  document.getElementById('da-fee-amt').textContent='৳ '+(DA_SEL.cls.fee||0);
+  daLoadPayNums();
+  daGoStep('pay');
+}
+function daLoadPayNums(){
+  const area=document.getElementById('da-nums-area');if(!area)return;
+  google.script.run.withSuccessHandler(res=>{
+    if(res.success&&res.data&&res.data.length){
+      const methodColor={বিকাশ:'#e2136e',নগদ:'#f47c21',রকেট:'#8b1a8b',ব্যাংক:'var(--pr)'};
+      area.innerHTML=`
+        <div style="background:#f0f4f8;border-radius:9px;padding:12px 14px;border:1px solid var(--bd)">
+          <div style="font-size:.78rem;font-weight:700;color:var(--pr);margin-bottom:9px">
+            <i class="fas fa-phone" style="color:var(--ac)"></i> পেমেন্ট করুন এই নম্বরে
+          </div>
+          ${res.data.map(n=>`
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--bd)">
+              <span style="background:${(methodColor[n.method]||'var(--pr)')}18;color:${methodColor[n.method]||'var(--pr)'};
+                padding:3px 9px;border-radius:20px;font-size:.73rem;font-weight:700;flex-shrink:0">${esc(n.method)}</span>
+              <span style="font-family:monospace;font-weight:700;font-size:.97rem;flex:1">${esc(n.number)}</span>
+              ${n.description?`<span style="font-size:.74rem;color:var(--mu)">${esc(n.description)}</span>`:''}
+            </div>`).join('')}
+        </div>`;
+    }else{area.innerHTML='';}
+  }).withFailureHandler(()=>{}).getPaymentNumbers();
+}
+let DA_LAST_APP=null;
+function daSubmit(){
+  const method=(document.querySelector('input[name="da-method"]:checked')||{}).value;
+  const txn=document.getElementById('da-txn').value.trim();
+  if(!method){toast('পেমেন্ট পদ্ধতি বেছে নিন','warning');return;}
+  if(!txn){toast('ট্রানজেকশন আইডি দিন','warning');return;}
+  const d={
+    inst_id:DA_SEL.inst.id, inst_name:DA_SEL.inst.name,
+    session_id:DA_SEL.session.id, session_name:DA_SEL.session.name,
+    exam_id:DA_SEL.exam.id, exam_name:DA_SEL.exam.name,
+    class_id:DA_SEL.cls.id, class_name:DA_SEL.cls.name,
+    name_bn:document.getElementById('da-nm-bn').value.trim(),
+    name_en:document.getElementById('da-nm-en').value.trim(),
+    father_name:document.getElementById('da-father').value.trim(),
+    mother_name:document.getElementById('da-mother').value.trim(),
+    dob:document.getElementById('da-dob').value,
+    guardian_mobile:document.getElementById('da-mobile').value.trim(),
+    photo:document.getElementById('da-photo-data').value,
+    fee_amount:DA_SEL.cls.fee||0,
+    payment_method:method, txn_id:txn, payment_amount:DA_SEL.cls.fee||0
+  };
+  const btn=document.getElementById('da-submit-btn');
+  btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>...';
+  google.script.run.withSuccessHandler(res=>{
+    btn.disabled=false;btn.innerHTML='<i class="fas fa-paper-plane"></i> আবেদন জমা দিন';
+    if(res.success){
+      DA_LAST_APP={...d,app_no:res.app_no};
+      document.getElementById('da-done-appno').textContent=res.app_no;
+      daGoStep('done');
+    }else toast(res.message,'error');
+  }).withFailureHandler(e=>{btn.disabled=false;btn.innerHTML='<i class="fas fa-paper-plane"></i> আবেদন জমা দিন';toast('ত্রুটি: '+e.message,'error');}).submitDirectApplication(d);
+}
+async function daDownloadPdf(){
+  if(!DA_LAST_APP)return;
+  const a=DA_LAST_APP;
+  const html=`<!doctype html><html><head><meta charset="utf-8">
+    <link href="https://fonts.maateen.me/solaiman-lipi/font.css" rel="stylesheet">
+    <style>*{box-sizing:border-box;font-family:'SolaimanLipi',Arial,sans-serif}
+      body{margin:0;background:#fff;color:#000}
+      .wrap{width:700px;padding:26px;margin:0 auto}
+      h1{text-align:center;font-size:20px;margin:0 0 4px}
+      .sub{text-align:center;font-size:12px;margin-bottom:16px;color:#333}
+      table{width:100%;border-collapse:collapse;font-size:13px}
+      td{padding:7px 8px;border:1px solid #999}
+      td.l{font-weight:700;background:#f3f3f3;width:38%}
+      .ph{width:110px;height:130px;object-fit:cover;border:1px solid #999;float:right;margin-left:12px}
+    </style></head><body><div class="wrap">
+      ${a.photo?`<img class="ph" src="${esc(a.photo)}">`:''}
+      <h1>সরাসরি শিক্ষার্থী আবেদনপত্র</h1>
+      <div class="sub">আবেদন নম্বর: ${esc(a.app_no)} | প্রতিষ্ঠান: ${esc(a.inst_name)}</div>
+      <table>
+        <tr><td class="l">নাম (বাংলা)</td><td>${esc(a.name_bn)}</td></tr>
+        <tr><td class="l">Name (English)</td><td>${esc(a.name_en||'')}</td></tr>
+        <tr><td class="l">পিতার নাম</td><td>${esc(a.father_name)}</td></tr>
+        <tr><td class="l">মাতার নাম</td><td>${esc(a.mother_name)}</td></tr>
+        <tr><td class="l">জন্ম তারিখ</td><td>${esc(a.dob)}</td></tr>
+        <tr><td class="l">অভিভাবকের মোবাইল</td><td>${esc(a.guardian_mobile)}</td></tr>
+        <tr><td class="l">সেশন</td><td>${esc(a.session_name)}</td></tr>
+        <tr><td class="l">পরীক্ষা</td><td>${esc(a.exam_name)}</td></tr>
+        <tr><td class="l">শ্রেণি</td><td>${esc(a.class_name)}</td></tr>
+        <tr><td class="l">আবেদন ফি</td><td>৳ ${a.fee_amount}</td></tr>
+        <tr><td class="l">পেমেন্ট পদ্ধতি</td><td>${esc(a.payment_method)}</td></tr>
+        <tr><td class="l">ট্রানজেকশন আইডি</td><td>${esc(a.txn_id)}</td></tr>
+      </table>
+    </div></body></html>`;
+  try{
+    toast('PDF প্রস্তুত হচ্ছে...','warning');
+    await adLoadPdfLibs();
+    const host=document.createElement('iframe');
+    host.style.cssText='position:fixed;right:-10000px;bottom:0;width:760px;height:1000px;opacity:0';
+    document.body.appendChild(host);
+    const doc=host.contentDocument||host.contentWindow.document;
+    doc.open();doc.write(html);doc.close();
+    await adWaitDocReady(doc);
+    await new Promise(r=>setTimeout(r,300));
+    const wrap=doc.querySelector('.wrap');
+    const canvas=await window.html2canvas(wrap,{scale:2,useCORS:true,backgroundColor:'#fff',logging:false});
+    const imgData=canvas.toDataURL('image/jpeg',0.95);
+    const jsPDF=window.jspdf.jsPDF;
+    const pdf=new jsPDF('p','mm','a4');
+    const pageW=210,imgH=canvas.height*pageW/canvas.width;
+    pdf.addImage(imgData,'JPEG',0,0,pageW,imgH);
+    pdf.save('application-'+a.app_no+'.pdf');
+    document.body.removeChild(host);
+    toast('PDF ডাউনলোড সম্পন্ন');
+  }catch(e){toast('PDF তৈরি ব্যর্থ: '+e.message,'error');}
+}
+
+// ================================================================
 // MEMBER APPLICATIONS
 // ================================================================
 let APPS=[], _appEditMap={};
@@ -6595,6 +7114,112 @@ function submitApp(e){
 }
 
 // ── Admin applications list ──
+// ================================================================
+// ফি ব্যবস্থাপনা (session + class based admission-fee management)
+// ================================================================
+function feeInit(){
+  const sel=document.getElementById('fee-ses');
+  document.getElementById('fee-list-card').style.display='none';
+  sel.innerHTML='<option value="">লোড হচ্ছে...</option>';
+  google.script.run.withSuccessHandler(res=>{
+    const list=(res&&res.data)||[];
+    sel.innerHTML='<option value="">সেশন বেছে নিন</option>'+list.map(s=>`<option value="${esc(s.id)}">${esc(s.session_name||s.name)}</option>`).join('');
+  }).withFailureHandler(()=>{sel.innerHTML='<option value="">লোড ব্যর্থ</option>';}).getSessions();
+}
+function feeSesChange(){
+  const sid=document.getElementById('fee-ses').value;
+  const card=document.getElementById('fee-list-card');
+  const tb=document.getElementById('fee-tb');
+  if(!sid){card.style.display='none';return;}
+  card.style.display='';
+  tb.innerHTML='<tr><td colspan="2" class="te"><div class="spinner"></div></td></tr>';
+  google.script.run.withSuccessHandler(res=>{
+    const list=(res&&res.data)||[];
+    if(!list.length){tb.innerHTML='<tr><td colspan="2" class="te">এই সেশনে কোনো শ্রেণি নেই</td></tr>';return;}
+    tb.innerHTML=list.map(c=>`
+      <tr>
+        <td>${esc(c.class_name)}</td>
+        <td><div class="iw"><i class="fas fa-bangladeshi-taka-sign ico"></i>
+          <input class="fi fee-in" data-id="${esc(c.id)}" type="number" min="0" value="${c.admission_fee||0}"></div></td>
+      </tr>`).join('');
+  }).withFailureHandler(()=>{tb.innerHTML='<tr><td colspan="2" class="te" style="color:var(--er)">লোড ব্যর্থ</td></tr>';}).getClasses(sid);
+}
+function feeSaveAll(){
+  const inputs=document.querySelectorAll('.fee-in');
+  if(!inputs.length)return;
+  let done=0,fail=0;
+  const total=inputs.length;
+  toast('সংরক্ষণ হচ্ছে...','warning');
+  inputs.forEach(inp=>{
+    const id=inp.dataset.id, fee=Number(inp.value)||0;
+    google.script.run.withSuccessHandler(res=>{
+      done++;
+      if(!res.success)fail++;
+      if(done===total){ toast(fail?`${fail}টি সংরক্ষণ ব্যর্থ হয়েছে`:'সকল ফি সংরক্ষিত হয়েছে', fail?'error':'success'); }
+    }).withFailureHandler(()=>{done++;fail++;if(done===total)toast(`${fail}টি সংরক্ষণ ব্যর্থ হয়েছে`,'error');}).updateClass({id,admission_fee:fee});
+  });
+}
+
+// ================================================================
+// সরাসরি শিক্ষার্থী আবেদন — ADMIN LIST (approve → students, reject → delete)
+// ================================================================
+let DAPP_LIST=[];
+function dappInit(){
+  const tb=document.getElementById('dapp-tb');
+  if(tb)tb.innerHTML='<tr><td colspan="9" class="te"><div class="spinner"></div></td></tr>';
+  google.script.run.withSuccessHandler(res=>{
+    if(res.success){
+      DAPP_LIST=res.data||[];
+      dappRender(DAPP_LIST);
+      const cnt=document.getElementById('dapp-cnt');if(cnt)cnt.textContent=DAPP_LIST.length;
+      const c2=document.getElementById('dapp-count');if(c2)c2.textContent=DAPP_LIST.length;
+    }else if(tb)tb.innerHTML=`<tr><td colspan="9" class="te" style="color:var(--er)">${esc(res.message)}</td></tr>`;
+  }).withFailureHandler(()=>{
+    if(tb)tb.innerHTML='<tr><td colspan="9" class="te" style="color:var(--er)">লোড ব্যর্থ</td></tr>';
+  }).getDirectApplications();
+}
+function dappRender(list){
+  const tb=document.getElementById('dapp-tb');if(!tb)return;
+  if(!list.length){tb.innerHTML='<tr><td colspan="9" class="te"><i class="fas fa-inbox"></i> কোনো আবেদন নেই</td></tr>';return;}
+  tb.innerHTML=list.map((a,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td style="font-family:monospace;font-size:.8rem">${esc(a.app_no||'')}</td>
+      <td>
+        <div style="font-weight:700">${esc(a.name_bn||'')}</div>
+        <div style="font-size:.72rem;color:var(--mu)">${esc(a.guardian_mobile||'')}</div>
+      </td>
+      <td style="font-size:.82rem">${esc(a.inst_name||'')}</td>
+      <td><span class="cls-bdg" style="font-size:.72rem">${esc(a.class_name||'')}</span></td>
+      <td>৳${a.fee_amount||0}</td>
+      <td style="font-size:.78rem">${esc(a.payment_method||'')}<br><span style="font-family:monospace">${esc(a.txn_id||'')}</span></td>
+      <td style="font-size:.76rem;color:var(--mu)">${fmtDate(a.created_at)}</td>
+      <td><div class="abs">
+        <button class="btn btn-ok btn-sm" onclick="dappApprove('${esc(a.id)}','${esc(a.name_bn)}')"><i class="fas fa-check"></i></button>
+        <button class="btn btn-er btn-sm" onclick="dappReject('${esc(a.id)}','${esc(a.name_bn)}')"><i class="fas fa-times"></i></button>
+      </div></td>
+    </tr>`).join('');
+}
+function dappFilter(){
+  const q=document.getElementById('dapp-q').value.trim().toLowerCase();
+  if(!q){dappRender(DAPP_LIST);return;}
+  dappRender(DAPP_LIST.filter(a=>(a.name_bn||'').toLowerCase().includes(q)||(a.app_no||'').toLowerCase().includes(q)));
+}
+function dappApprove(id,name){
+  coOpen(`"${name}" এর আবেদনটি অনুমোদন করলে শিক্ষার্থী তালিকায় যুক্ত হবে। নিশ্চিত?`,()=>{
+    google.script.run.withSuccessHandler(res=>{
+      if(res.success){toast(res.message);dappInit();}else toast(res.message,'error');
+    }).withFailureHandler(()=>toast('ত্রুটি','error')).approveDirectApplication(id);
+  },'হ্যাঁ, অনুমোদন করুন');
+}
+function dappReject(id,name){
+  coOpen(`"${name}" এর আবেদনটি বাতিল করে মুছে ফেলবেন?`,()=>{
+    google.script.run.withSuccessHandler(res=>{
+      if(res.success){toast(res.message);dappInit();}else toast(res.message,'error');
+    }).withFailureHandler(()=>toast('ত্রুটি','error')).rejectDirectApplication(id);
+  },'হ্যাঁ, বাতিল করুন');
+}
+
 function appsInit(){
   const tb=document.getElementById('apps-tb');
   if(tb)tb.innerHTML='<tr><td colspan="7" class="te"><div class="spinner"></div></td></tr>';
@@ -8218,6 +8843,13 @@ async function atDownloadPdf(){
     });
   }
   if(!data.length){toast('তালিকা খালি','warning');return;}
+  toast('PDF প্রস্তুত হচ্ছে...','warning');
+  // ছবি data-URL এ রূপান্তর (html2canvas cross-origin ছবি বাদ দেয় বলে)
+  const photoMap={};
+  await Promise.all(data.map(async a=>{
+    const st=(window.STDS||[]).find(x=>x.id===a.student_id)||{};
+    if(st.photo && !(st.photo in photoMap)) photoMap[st.photo]=await photoToDataUrl(st.photo);
+  }));
   const sName=(SESS.find(s=>String(s.id)===String(sid))||{}).session_name|| (SESS.find(s=>String(s.id)===String(sid))||{}).name||'';
   const eName=eid?((AT_EXAMS.find(e=>String(e.id)===String(eid))||{}).name||''):'সকল পরীক্ষা';
   // শ্রেণি অনুযায়ী গ্রুপ
@@ -8227,13 +8859,14 @@ async function atDownloadPdf(){
     const rows=grp[cid].map((a,i)=>{
       const st=(window.STDS||[]).find(x=>x.id===a.student_id)||{};
       const tm=new Date(a.scanned_at).toLocaleString('bn-BD');
-      return `<tr><td>${i+1}</td><td>${esc(st.reg_no||'')}</td><td>${esc(st.roll||'')}</td>
+      const photoTd=st.photo?`<img src="${esc(photoMap[st.photo]||st.photo)}" style="width:30px;height:30px;object-fit:cover;border-radius:4px;border:1px solid #000">`:'';
+      return `<tr><td>${i+1}</td><td>${photoTd}</td><td>${esc(st.reg_no||'')}</td><td>${esc(st.roll||'')}</td>
         <td style="text-align:left">${esc(st.name_bn||st.name_en||'')}</td>
         <td>${esc(a.room||'-')}</td><td>${esc(tm)}</td></tr>`;
     }).join('');
     return `<div class="sec">
       <div class="sec-h">শ্রেণি: ${esc(cid?clsName(cid):'অজানা')} <span class="sec-c">${grp[cid].length} জন</span></div>
-      <table class="at-pdf-tbl"><thead><tr><th>#</th><th>রেজিঃ</th><th>রোল</th><th>নাম</th><th>কক্ষ</th><th>সময়</th></tr></thead>
+      <table class="at-pdf-tbl"><thead><tr><th>#</th><th>ছবি</th><th>রেজিঃ</th><th>রোল</th><th>নাম</th><th>কক্ষ</th><th>সময়</th></tr></thead>
       <tbody>${rows}</tbody></table>
     </div>`;
   }).join('');
@@ -8272,7 +8905,6 @@ async function atDownloadPdf(){
       <div class="ft">প্রিন্টের তারিখ: ${esc(new Date().toLocaleString('bn-BD'))}</div>
     </div></body></html>`;
   try{
-    toast('PDF প্রস্তুত হচ্ছে...','warning');
     await adLoadPdfLibs();
     const host=document.createElement('iframe');
     host.style.cssText='position:fixed;right:-10000px;bottom:0;width:820px;height:1120px;opacity:0';
