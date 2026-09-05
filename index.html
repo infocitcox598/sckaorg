@@ -11,7 +11,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
   const firebaseConfig = {
@@ -668,6 +667,17 @@ select.fi{padding-left:12px}
 .sub-badge.pending{background:rgba(243,156,18,.14);color:#e67e22}
 .sub-badge.done{background:rgba(46,204,113,.14);color:#27ae60}
 .sub-badge.reject{background:rgba(231,76,60,.14);color:#c0392b}
+
+/* সরাসরি শিক্ষার্থী আবেদন — STEP PROGRESS */
+.da-step-dot{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0}
+.da-step-circle{width:30px;height:30px;border-radius:50%;background:#e2e8f0;color:#94a3b8;
+  display:flex;align-items:center;justify-content:center;font-size:.75rem;transition:all var(--t)}
+.da-step-dot span{font-size:.63rem;color:var(--mu);font-weight:600;white-space:nowrap}
+.da-step-dot.active .da-step-circle{background:var(--ac);color:#fff;box-shadow:0 0 0 4px rgba(37,99,235,.15)}
+.da-step-dot.active span{color:var(--ac)}
+.da-step-dot.doneStep .da-step-circle{background:var(--ok);color:#fff}
+.da-step-dot.doneStep span{color:var(--ok)}
+.da-step-ln{flex:1;height:2px;background:#e2e8f0;margin:0 2px;margin-bottom:16px}
 .pay-method-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .pay-method-btn{display:flex;align-items:center;gap:8px;padding:11px 12px;border-radius:9px;
   border:2px solid var(--bd);cursor:pointer;transition:all var(--t);background:#f8fafc;flex:1;min-width:100px}
@@ -2000,9 +2010,25 @@ select.fi{padding-left:12px}
 <!-- ══════ সরাসরি শিক্ষার্থী আবেদন (DIRECT APPLICATION) ══════ -->
 <div id="pg-dapp-public" style="display:none;min-height:100vh;background:var(--bg2,#f2f5f8);padding:18px 12px 40px">
   <div style="max-width:560px;margin:0 auto">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
       <button onclick="daClose()" class="btn btn-ol btn-sm"><i class="fas fa-arrow-left"></i></button>
-      <div style="font-weight:800;font-size:1.05rem;color:var(--pr)"><i class="fas fa-user-graduate"></i> সরাসরি শিক্ষার্থী আবেদন</div>
+      <img id="da-org-logo" src="" style="display:none;width:34px;height:34px;object-fit:cover;border-radius:8px">
+      <div>
+        <div id="da-org-name" style="font-weight:800;font-size:1rem;color:var(--pr)">সরাসরি শিক্ষার্থী আবেদন</div>
+        <div style="font-size:.72rem;color:var(--mu)"><i class="fas fa-user-graduate"></i> শিক্ষার্থী ভর্তি আবেদন ফরম</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:0 4px" id="da-progress">
+      <div class="da-step-dot" data-s="inst"><div class="da-step-circle"><i class="fas fa-university"></i></div><span>প্রতিষ্ঠান</span></div>
+      <div class="da-step-ln"></div>
+      <div class="da-step-dot" data-s="sess"><div class="da-step-circle"><i class="fas fa-calendar"></i></div><span>সেশন</span></div>
+      <div class="da-step-ln"></div>
+      <div class="da-step-dot" data-s="form"><div class="da-step-circle"><i class="fas fa-user"></i></div><span>তথ্য</span></div>
+      <div class="da-step-ln"></div>
+      <div class="da-step-dot" data-s="pay"><div class="da-step-circle"><i class="fas fa-money-bill"></i></div><span>পেমেন্ট</span></div>
+      <div class="da-step-ln"></div>
+      <div class="da-step-dot" data-s="done"><div class="da-step-circle"><i class="fas fa-check"></i></div><span>সম্পন্ন</span></div>
     </div>
 
     <!-- STEP 1: প্রতিষ্ঠান নির্বাচন -->
@@ -2053,10 +2079,13 @@ select.fi{padding-left:12px}
         <div class="fg"><label class="fl">অভিভাবকের মোবাইল *</label>
           <div class="iw"><i class="fas fa-phone ico"></i><input class="fi" id="da-mobile" required></div></div>
       </div>
+      <div class="fg"><label class="fl">রোল নম্বর <span style="font-size:.74rem;color:var(--mu);font-weight:400">(ঐচ্ছিক)</span></label>
+        <div class="iw"><i class="fas fa-hashtag ico"></i><input class="fi" id="da-roll" placeholder="রোল নম্বর (থাকলে দিন)"></div></div>
       <div class="fg"><label class="fl">ছবি — Google Drive লিংক দিন <span style="color:var(--mu);font-weight:400">অথবা</span> সরাসরি আপলোড করুন (ঐচ্ছিক)</label>
         <div class="iw"><i class="fab fa-google-drive ico"></i><input class="fi" id="da-photo-link" placeholder="https://drive.google.com/file/d/..." oninput="daPhotoLinkTyped()"></div>
-        <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+        <div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">
           <input type="file" id="da-photo-file" accept="image/*" style="display:none" onchange="daUploadPhoto(this)">
+          <img id="da-photo-preview" src="" style="display:none;width:56px;height:66px;object-fit:cover;border-radius:6px;border:1px solid var(--bd)">
           <button type="button" class="btn btn-ol btn-sm" onclick="document.getElementById('da-photo-file').click()">
             <i class="fas fa-upload"></i> ছবি আপলোড করুন
           </button>
@@ -2091,6 +2120,8 @@ select.fi{padding-left:12px}
           </label>
         </div>
       </div>
+      <div class="fg"><label class="fl">যে নম্বর থেকে টাকা পাঠিয়েছেন *</label>
+        <div class="iw"><i class="fas fa-mobile-screen ico"></i><input class="fi" id="da-sender-mobile" placeholder="যেমন: 01xxxxxxxxx" required></div></div>
       <div class="fg"><label class="fl">ট্রানজেকশন আইডি *</label>
         <div class="iw"><i class="fas fa-hashtag ico"></i><input class="fi" id="da-txn" placeholder="ট্রানজেকশন নম্বর লিখুন" required></div></div>
       <div class="ma" style="justify-content:space-between">
@@ -3463,8 +3494,10 @@ select.fi{padding-left:12px}
                   <div class="iw"><i class="fas fa-phone ico"></i><input class="fi" id="s-mb"></div></div>
                 <div class="fg"><label class="fl">অ্যাডমিন ইমেইল <span style="font-size:.74rem;color:var(--mu)">(আবেদন নোটিফিকেশনের জন্য)</span></label>
                   <div class="iw"><i class="fas fa-envelope ico"></i><input class="fi" id="s-email" type="email" placeholder="admin@example.com"></div></div>
-                <div class="fg"><label class="fl">Google Drive Upload OAuth Client ID <span style="font-size:.74rem;color:var(--mu)">(ছবি সরাসরি Drive-এ আপলোডের জন্য, ঐচ্ছিক)</span></label>
-                  <div class="iw"><i class="fab fa-google ico"></i><input class="fi" id="s-drive-cid" placeholder="xxxxxx.apps.googleusercontent.com"></div></div>
+                <div class="fg"><label class="fl">Google Apps Script Web App URL <span style="font-size:.74rem;color:var(--mu)">(ছবি Drive-এ আপলোডের জন্য, ঐচ্ছিক — আবেদনকারীর কোনো লগইন লাগবে না)</span></label>
+                  <div class="iw"><i class="fab fa-google ico"></i><input class="fi" id="s-drive-webapp" placeholder="https://script.google.com/macros/s/.../exec"></div></div>
+                <div class="fg"><label class="fl">Google Drive ফোল্ডার লিংক <span style="font-size:.74rem;color:var(--mu)">(ছবি এই ফোল্ডারে জমা হবে)</span></label>
+                  <div class="iw"><i class="fas fa-folder-open ico"></i><input class="fi" id="s-drive-folder" placeholder="https://drive.google.com/drive/folders/..."></div></div>
                 <button type="submit" class="btn btn-pr" style="width:100%"><i class="fas fa-save"></i> সংরক্ষণ করুন</button>
               </form>
             </div>
@@ -3704,7 +3737,7 @@ select.fi{padding-left:12px}
 
     async getPublicSettings(){
       const s=await loadSettings();
-      return {success:true,data:{inst_name:s.inst_name||'অ্যাডমিন ড্যাশবোর্ড',address:s.address||'',mobile:s.mobile||'',logo_url:s.logo_url||'',drive_upload_client_id:s.drive_upload_client_id||''}};
+      return {success:true,data:{inst_name:s.inst_name||'অ্যাডমিন ড্যাশবোর্ড',address:s.address||'',mobile:s.mobile||'',logo_url:s.logo_url||'',drive_upload_webapp:s.drive_upload_webapp||'',drive_upload_folder:s.drive_upload_folder||''}};
     },
     async getSettings(){
       const s=await loadSettings();
@@ -4113,8 +4146,13 @@ select.fi{padding-left:12px}
     async submitDirectApplication(d){
       if(!d.name_bn||!d.inst_id||!d.session_id||!d.class_id) return err('আবশ্যক তথ্য অনুপস্থিত');
       if(!d.txn_id) return err('ট্রানজেকশন আইডি দিন');
+      const txn=String(d.txn_id).trim();
+      const dup1=await db.collection('direct_applications').where('txn_id','==',txn).limit(1).get();
+      if(!dup1.empty) return err('এই ট্রানজেকশন আইডি দিয়ে ইতিমধ্যে একটি আবেদন জমা আছে');
+      const dup2=await db.collection('used_txn_ids').where('txn_id','==',txn).limit(1).get();
+      if(!dup2.empty) return err('এই ট্রানজেকশন আইডি ইতিমধ্যে ব্যবহৃত হয়েছে — একটি ট্রানজেকশন আইডি দিয়ে একবারই আবেদন করা যাবে');
       const appNo='DA'+Date.now().toString().slice(-8);
-      const r=await DAPP.add({...d,status:'অপেক্ষমাণ',app_no:appNo});
+      const r=await DAPP.add({...d,txn_id:txn,status:'অপেক্ষমাণ',app_no:appNo});
       if(!r.success) return r;
       return {success:true,message:'আবেদন সফলভাবে জমা হয়েছে',app_no:appNo,id:r.id};
     },
@@ -4137,9 +4175,10 @@ select.fi{padding-left:12px}
           class_id:d.class_id||'',class_name:d.class_name||'',
           name_bn:d.name_bn||'',name_en:d.name_en||'',
           father_name:d.father_name||'',mother_name:d.mother_name||'',
-          dob:d.dob||'',roll:'',inst_mobile:'',guardian_mobile:d.guardian_mobile||'',
+          dob:d.dob||'',roll:d.roll||'',inst_mobile:'',guardian_mobile:d.guardian_mobile||'',
           photo:d.photo||'',created_at:Date.now()
         });
+        if(d.txn_id) await db.collection('used_txn_ids').add({txn_id:String(d.txn_id).trim(),app_no:d.app_no||'',used_at:Date.now()});
         await db.collection('direct_applications').doc(String(id)).delete();
         return ok('আবেদন অনুমোদিত হয়েছে ও শিক্ষার্থী তালিকায় যুক্ত হয়েছে');
       }catch(e){ return err(e.message); }
@@ -4293,7 +4332,8 @@ document.addEventListener('DOMContentLoaded',()=>{
           limg.style.display='block';
           if(lph)lph.style.display='none';
         }
-        window.__DRIVE_UPLOAD_CID=d.drive_upload_client_id||'';
+        window.__DRIVE_UPLOAD_WEBAPP=d.drive_upload_webapp||'';
+        window.__DRIVE_UPLOAD_FOLDER=d.drive_upload_folder||'';
       }
     })
     .withFailureHandler(()=>{})
@@ -4322,6 +4362,13 @@ window.addEventListener('popstate',(ev)=>{
 // ================================================================
 // TOAST
 // ================================================================
+function driveFolderIdFromUrl(v){
+  if(!v) return '';
+  v=String(v).trim();
+  const m=v.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  if(m) return m[1];
+  return v; // already looks like a bare folder ID
+}
 function toDriveDirectUrl(url){
   if(!url) return url;
   url=String(url).trim();
@@ -4739,7 +4786,8 @@ function applySettings(){
   document.getElementById('s-nm').value=n;document.getElementById('s-ad').value=a;
   document.getElementById('s-mb').value=m;document.getElementById('s-lg').value=l;
   const se=document.getElementById('s-email');if(se)se.value=SETS.admin_email||'';
-  const sdc=document.getElementById('s-drive-cid');if(sdc)sdc.value=SETS.drive_upload_client_id||'';
+  const sdc=document.getElementById('s-drive-webapp');if(sdc)sdc.value=SETS.drive_upload_webapp||'';
+  const sdf=document.getElementById('s-drive-folder');if(sdf)sdf.value=SETS.drive_upload_folder||'';
 }
 function setHdr(n,a,m,l){
   // This sets the ADMIN (super admin) info in the header
@@ -4758,7 +4806,8 @@ function settSave(e){
   const d={logo_url:toDriveDirectUrl(document.getElementById('s-lg').value.trim()),inst_name:document.getElementById('s-nm').value.trim(),
     address:document.getElementById('s-ad').value.trim(),mobile:document.getElementById('s-mb').value.trim(),
     admin_email:(document.getElementById('s-email')||{}).value?.trim()||'',
-    drive_upload_client_id:(document.getElementById('s-drive-cid')||{}).value?.trim()||''};
+    drive_upload_webapp:(document.getElementById('s-drive-webapp')||{}).value?.trim()||'',
+    drive_upload_folder:driveFolderIdFromUrl((document.getElementById('s-drive-folder')||{}).value?.trim()||'')};
   const btn=e.submitter;btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>...';
   google.script.run.withSuccessHandler(res=>{
     btn.disabled=false;btn.innerHTML='<i class="fas fa-save"></i> সংরক্ষণ করুন';
@@ -6791,6 +6840,14 @@ function daOpen(){
   DA_SEL={inst:null,session:null,exam:null,cls:null,fee:0};
   daGoStep('inst');
   document.getElementById('da-inst-q').value='';
+  // লগইন পেজে ইতিমধ্যে লোড হওয়া প্রতিষ্ঠানের নাম/লোগো এখানেও দেখাও
+  const sysName=(document.getElementById('l-sys-name')||{}).textContent;
+  if(sysName&&sysName.trim()) document.getElementById('da-org-name').textContent=sysName;
+  const logoImg=document.getElementById('l-logo-img');
+  if(logoImg&&logoImg.src&&logoImg.style.display!=='none'){
+    const orgLogo=document.getElementById('da-org-logo');
+    orgLogo.src=logoImg.src;orgLogo.style.display='block';
+  }
   google.script.run.withSuccessHandler(res=>{
     DA_INSTS=(res&&res.data)||[];
     daRenderInstList(DA_INSTS);
@@ -6802,8 +6859,16 @@ function daClose(){
   document.getElementById('pg-login').classList.remove('hidden');
 }
 function daGoStep(step){
-  ['inst','sess','form','pay','done'].forEach(s=>{
+  const order=['inst','sess','form','pay','done'];
+  order.forEach(s=>{
     const el=document.getElementById('da-step-'+s);if(el)el.style.display=(s===step?'':'none');
+  });
+  const curIdx=order.indexOf(step);
+  document.querySelectorAll('#da-progress .da-step-dot').forEach(dot=>{
+    const idx=order.indexOf(dot.dataset.s);
+    dot.classList.remove('active','doneStep');
+    if(idx<curIdx) dot.classList.add('doneStep');
+    else if(idx===curIdx) dot.classList.add('active');
   });
 }
 function daRenderInstList(list){
@@ -6868,69 +6933,118 @@ function daPhotoLinkTyped(){
   // ম্যানুয়ালি লিংক টাইপ করলে আগের আপলোড করা ছবির ডেটা মুছে দাও (সংঘাত এড়াতে)
   document.getElementById('da-photo-data').value='';
   const st=document.getElementById('da-photo-status');if(st)st.textContent='';
+  const pv=document.getElementById('da-photo-preview');if(pv)pv.style.display='none';
 }
-let __gDriveTokenClient=null,__gDriveAccessToken=null;
-function daUploadPhoto(fileInput){
+function daSanitizeFileName(nm){
+  return String(nm||'ছবি').trim().replace(/[\\/:*?"<>|]/g,'').replace(/\s+/g,'_').slice(0,60)||'ছবি';
+}
+function daCompressImage(file,maxBytes){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onerror=()=>reject(new Error('ফাইল পড়া যায়নি'));
+    reader.onload=e=>{
+      const img=new Image();
+      img.onerror=()=>reject(new Error('ছবি লোড ব্যর্থ'));
+      img.onload=()=>{
+        let w=img.width,h=img.height,maxDim=1000;
+        const canvas=document.createElement('canvas');
+        const ctx=canvas.getContext('2d');
+        let attempt=0;
+        function render(){
+          let cw=w,ch=h;
+          if(cw>maxDim||ch>maxDim){
+            if(cw>ch){ch=Math.round(ch*maxDim/cw);cw=maxDim;}
+            else{cw=Math.round(cw*maxDim/ch);ch=maxDim;}
+          }
+          canvas.width=cw;canvas.height=ch;
+          ctx.clearRect(0,0,cw,ch);
+          ctx.drawImage(img,0,0,cw,ch);
+          tryQuality(0.85);
+        }
+        function tryQuality(q){
+          canvas.toBlob(blob=>{
+            if(!blob){reject(new Error('কম্প্রেস ব্যর্থ'));return;}
+            attempt++;
+            if(blob.size<=maxBytes || (q<=0.35 && maxDim<=500) || attempt>12){
+              resolve(blob);
+            } else if(q>0.35){
+              tryQuality(q-0.12);
+            } else {
+              maxDim=Math.round(maxDim*0.8);
+              render();
+            }
+          },'image/jpeg',q);
+        }
+        render();
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+async function daUploadPhoto(fileInput){
   const file=fileInput.files&&fileInput.files[0];
   if(!file)return;
   const status=document.getElementById('da-photo-status');
-  const cid=window.__DRIVE_UPLOAD_CID;
-  if(!cid){
+  const preview=document.getElementById('da-photo-preview');
+  const webapp=window.__DRIVE_UPLOAD_WEBAPP;
+  if(!webapp){
     status.textContent='ছবি আপলোড সুবিধা চালু নেই — Drive লিংক ব্যবহার করুন';
     status.style.color='var(--er)';
     fileInput.value='';
     return;
   }
   if(!file.type.startsWith('image/')){toast('শুধুমাত্র ছবি আপলোড করা যাবে','warning');fileInput.value='';return;}
-  if(file.size>8*1024*1024){toast('ছবির আকার ৮MB এর কম হতে হবে','warning');fileInput.value='';return;}
-  if(typeof google==='undefined'||!google.accounts||!google.accounts.oauth2){
-    status.textContent='Google লাইব্রেরি লোড হয়নি, একটু পর আবার চেষ্টা করুন';
+  status.style.color='var(--mu)';
+  status.textContent='ছবি প্রস্তুত হচ্ছে...';
+  const MAX_BYTES=200*1024;
+  let blob;
+  try{
+    blob=await daCompressImage(file,MAX_BYTES);
+  }catch(e){
+    status.style.color='var(--er)';status.textContent='ছবি প্রক্রিয়া ব্যর্থ: '+e.message;
+    fileInput.value='';return;
+  }
+  if(blob.size>MAX_BYTES){
     status.style.color='var(--er)';
+    status.textContent='ছবিটি ২০০ কেবির নিচে আনা যায়নি, অন্য ছবি ব্যবহার করুন';
+    fileInput.value='';
     return;
   }
-  status.style.color='var(--mu)';
-  status.textContent='Google অনুমতি লাগবে...';
-  const doUpload=()=>{
-    status.textContent='আপলোড হচ্ছে...';
-    const meta={name:'application-photo-'+Date.now()+'-'+file.name,mimeType:file.type};
-    const form=new FormData();
-    form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
-    form.append('file',file);
-    fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+__gDriveAccessToken},
-      body:form
-    }).then(r=>{ if(!r.ok) throw new Error('আপলোড ব্যর্থ ('+r.status+')'); return r.json(); })
-    .then(f=>{
-      // ফাইলটা যেকেউ লিংক দিয়ে দেখতে পারবে এমন পারমিশন দাও
-      return fetch('https://www.googleapis.com/drive/v3/files/'+f.id+'/permissions',{
-        method:'POST',
-        headers:{'Authorization':'Bearer '+__gDriveAccessToken,'Content-Type':'application/json'},
-        body:JSON.stringify({role:'reader',type:'anyone'})
-      }).then(()=>f.id);
-    }).then(fileId=>{
-      const url='https://lh3.googleusercontent.com/d/'+fileId;
-      document.getElementById('da-photo-data').value=url;
-      document.getElementById('da-photo-link').value='';
-      status.style.color='var(--ok)';
-      status.innerHTML='<i class="fas fa-circle-check"></i> ছবি সফলভাবে আপলোড হয়েছে';
-    }).catch(e=>{
-      status.style.color='var(--er)';
-      status.textContent='আপলোড ব্যর্থ: '+e.message;
-    });
+  // প্রিভিউ দেখাও
+  preview.src=URL.createObjectURL(blob);
+  preview.style.display='inline-block';
+  status.textContent='আপলোড হচ্ছে... ('+Math.round(blob.size/1024)+' KB)';
+  const reader=new FileReader();
+  reader.onload=function(){
+    const base64=reader.result.split(',')[1]; // data:...;base64,XXXX -> শুধু XXXX অংশ
+    const stName=daSanitizeFileName(document.getElementById('da-nm-bn').value);
+    const payload={
+      fileName:stName+'.jpg',
+      mimeType:'image/jpeg',
+      data:base64,
+      folderId:window.__DRIVE_UPLOAD_FOLDER||''
+    };
+    // content-type সেট না করলে fetch 'text/plain' পাঠায় → CORS preflight এড়িয়ে যায় (Apps Script এর জন্য প্রয়োজনীয়)
+    fetch(webapp,{method:'POST',body:JSON.stringify(payload)})
+      .then(r=>r.json())
+      .then(res=>{
+        if(res.success){
+          document.getElementById('da-photo-data').value=res.url;
+          document.getElementById('da-photo-link').value='';
+          status.style.color='var(--ok)';
+          status.innerHTML='<i class="fas fa-circle-check"></i> ছবি সফলভাবে আপলোড হয়েছে ('+Math.round(blob.size/1024)+' KB)';
+        }else{
+          status.style.color='var(--er)';
+          status.textContent='আপলোড ব্যর্থ: '+(res.message||'অজানা ত্রুটি');
+        }
+      }).catch(e=>{
+        status.style.color='var(--er)';
+        status.textContent='আপলোড ব্যর্থ: '+e.message;
+      });
   };
-  if(__gDriveAccessToken){ doUpload(); return; }
-  if(!__gDriveTokenClient){
-    __gDriveTokenClient=google.accounts.oauth2.initTokenClient({
-      client_id:cid,
-      scope:'https://www.googleapis.com/auth/drive.file',
-      callback:(resp)=>{
-        if(resp&&resp.access_token){ __gDriveAccessToken=resp.access_token; doUpload(); }
-        else{ status.style.color='var(--er)';status.textContent='অনুমতি দেওয়া হয়নি'; }
-      }
-    });
-  }
-  __gDriveTokenClient.requestAccessToken();
+  reader.onerror=function(){ status.style.color='var(--er)';status.textContent='ফাইল পড়া যায়নি'; };
+  reader.readAsDataURL(blob);
 }
 function daStep3Next(){
   if(!DA_SEL.cls){toast('শ্রেণি বেছে নিন','warning');return;}
@@ -6966,8 +7080,10 @@ function daLoadPayNums(){
 let DA_LAST_APP=null;
 function daSubmit(){
   const method=(document.querySelector('input[name="da-method"]:checked')||{}).value;
+  const senderMobile=document.getElementById('da-sender-mobile').value.trim();
   const txn=document.getElementById('da-txn').value.trim();
   if(!method){toast('পেমেন্ট পদ্ধতি বেছে নিন','warning');return;}
+  if(!senderMobile){toast('যে নম্বর থেকে টাকা পাঠিয়েছেন তা দিন','warning');return;}
   if(!txn){toast('ট্রানজেকশন আইডি দিন','warning');return;}
   const d={
     inst_id:DA_SEL.inst.id, inst_name:DA_SEL.inst.name,
@@ -6980,9 +7096,10 @@ function daSubmit(){
     mother_name:document.getElementById('da-mother').value.trim(),
     dob:document.getElementById('da-dob').value,
     guardian_mobile:document.getElementById('da-mobile').value.trim(),
+    roll:document.getElementById('da-roll').value.trim(),
     photo:document.getElementById('da-photo-data').value,
     fee_amount:DA_SEL.cls.fee||0,
-    payment_method:method, txn_id:txn, payment_amount:DA_SEL.cls.fee||0
+    payment_method:method, sender_mobile:senderMobile, txn_id:txn, payment_amount:DA_SEL.cls.fee||0
   };
   const btn=document.getElementById('da-submit-btn');
   btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>...';
@@ -6998,53 +7115,91 @@ function daSubmit(){
 async function daDownloadPdf(){
   if(!DA_LAST_APP)return;
   const a=DA_LAST_APP;
+  const orgName=((document.getElementById('l-sys-name')||{}).textContent||'').trim()||'অ্যাডমিন প্যানেল';
+  const orgAddr=((document.getElementById('l-ad')||{}).textContent||'').trim();
+  const orgLogoEl=document.getElementById('l-logo-img');
+  const orgLogo=(orgLogoEl&&orgLogoEl.style.display!=='none'&&orgLogoEl.src)?orgLogoEl.src:'';
+  const printedAt=new Date().toLocaleString('bn-BD');
+  // A4 @ 96dpi ≈ 794×1123px — html2canvas এই অনুপাতে ক্যাপচার করলে jsPDF-এ পুরো A4 পেজ ভরে যাবে
   const html=`<!doctype html><html><head><meta charset="utf-8">
     <link href="https://fonts.maateen.me/solaiman-lipi/font.css" rel="stylesheet">
     <style>*{box-sizing:border-box;font-family:'SolaimanLipi',Arial,sans-serif}
-      body{margin:0;background:#fff;color:#000}
-      .wrap{width:700px;padding:26px;margin:0 auto}
-      h1{text-align:center;font-size:20px;margin:0 0 4px}
-      .sub{text-align:center;font-size:12px;margin-bottom:16px;color:#333}
-      table{width:100%;border-collapse:collapse;font-size:13px}
-      td{padding:7px 8px;border:1px solid #999}
-      td.l{font-weight:700;background:#f3f3f3;width:38%}
-      .ph{width:110px;height:130px;object-fit:cover;border:1px solid #999;float:right;margin-left:12px}
-    </style></head><body><div class="wrap">
-      ${a.photo?`<img class="ph" src="${esc(a.photo)}">`:''}
-      <h1>সরাসরি শিক্ষার্থী আবেদনপত্র</h1>
-      <div class="sub">আবেদন নম্বর: ${esc(a.app_no)} | প্রতিষ্ঠান: ${esc(a.inst_name)}</div>
-      <table>
-        <tr><td class="l">নাম (বাংলা)</td><td>${esc(a.name_bn)}</td></tr>
-        <tr><td class="l">Name (English)</td><td>${esc(a.name_en||'')}</td></tr>
-        <tr><td class="l">পিতার নাম</td><td>${esc(a.father_name)}</td></tr>
-        <tr><td class="l">মাতার নাম</td><td>${esc(a.mother_name)}</td></tr>
-        <tr><td class="l">জন্ম তারিখ</td><td>${esc(a.dob)}</td></tr>
-        <tr><td class="l">অভিভাবকের মোবাইল</td><td>${esc(a.guardian_mobile)}</td></tr>
-        <tr><td class="l">সেশন</td><td>${esc(a.session_name)}</td></tr>
-        <tr><td class="l">পরীক্ষা</td><td>${esc(a.exam_name)}</td></tr>
-        <tr><td class="l">শ্রেণি</td><td>${esc(a.class_name)}</td></tr>
-        <tr><td class="l">আবেদন ফি</td><td>৳ ${a.fee_amount}</td></tr>
-        <tr><td class="l">পেমেন্ট পদ্ধতি</td><td>${esc(a.payment_method)}</td></tr>
-        <tr><td class="l">ট্রানজেকশন আইডি</td><td>${esc(a.txn_id)}</td></tr>
+      body{margin:0;background:#eef1f5}
+      .outer{width:794px;min-height:1123px;padding:18px}
+      .page{width:100%;min-height:1087px;background:#fff;border:3px solid #1e3a5f;padding:0;display:flex;flex-direction:column;position:relative}
+      .page::before{content:'';position:absolute;inset:6px;border:1px solid #b9c4d4;pointer-events:none}
+      .inner{padding:30px 40px;display:flex;flex-direction:column;flex:1}
+      .top-bar{height:8px;background:linear-gradient(90deg,#1e3a5f,#2c5282)}
+      .hd{display:flex;align-items:center;gap:14px;border-bottom:2.5px solid #1e3a5f;padding-bottom:14px;margin-bottom:8px}
+      .hd img{width:58px;height:58px;object-fit:cover;border-radius:8px;flex-shrink:0;border:1px solid #d5dbe3}
+      .hd .org{font-size:19px;font-weight:800;color:#1e3a5f;letter-spacing:.3px}
+      .hd .addr{font-size:12px;color:#666;margin-top:2px}
+      h1{text-align:center;font-size:17px;margin:18px 0 3px;color:#1e3a5f;letter-spacing:1px;text-transform:uppercase}
+      .sub{text-align:center;font-size:11.5px;margin-bottom:20px;color:#555}
+      .sub b{color:#1e3a5f}
+      .body-row{display:flex;gap:20px}
+      .ph-box{width:118px;height:142px;border:2px solid #1e3a5f;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+        background:#f3f4f6;overflow:hidden}
+      .ph-box img{width:100%;height:100%;object-fit:cover}
+      .ph-box .ph-ph{color:#94a3b8;font-size:11px;text-align:center}
+      table{width:100%;border-collapse:collapse;font-size:12.5px}
+      td{padding:9px 11px;border:1px solid #d3dae3;vertical-align:middle}
+      td.l{font-weight:700;background:#f3f6fa;width:26%;color:#1e3a5f;white-space:nowrap}
+      .sec-tbl{margin-top:16px}
+      .ftr{margin-top:auto;padding-top:46px;display:flex;justify-content:space-between;font-size:11.5px}
+      .sig{width:210px;text-align:center}
+      .sig .ln{border-top:1.5px solid #444;margin-bottom:5px;padding-top:5px}
+      .gen-at{text-align:center;font-size:9.5px;color:#999;margin-top:18px;padding-bottom:14px}
+    </style></head><body><div class="outer"><div class="page">
+      <div class="top-bar"></div>
+      <div class="inner">
+      <div class="hd">
+        ${orgLogo?`<img src="${esc(orgLogo)}">`:''}
+        <div><div class="org">${esc(orgName)}</div>${orgAddr?`<div class="addr">${esc(orgAddr)}</div>`:''}</div>
+      </div>
+      <h1>শিক্ষার্থী আবেদন ফরম</h1>
+      <div class="sub">আবেদন নম্বর: <b>${esc(a.app_no)}</b> &nbsp;|&nbsp; প্রতিষ্ঠান: <b>${esc(a.inst_name)}</b></div>
+      <div class="body-row">
+        <div class="ph-box">${a.photo?`<img src="${esc(a.photo)}">`:'<div class="ph-ph">ছবি নেই</div>'}</div>
+        <table>
+          <tr><td class="l">নাম (বাংলা)</td><td>${esc(a.name_bn)}</td></tr>
+          <tr><td class="l">Name (English)</td><td>${esc(a.name_en||'')}</td></tr>
+          <tr><td class="l">পিতার নাম</td><td>${esc(a.father_name)}</td></tr>
+          <tr><td class="l">মাতার নাম</td><td>${esc(a.mother_name)}</td></tr>
+          <tr><td class="l">জন্ম তারিখ</td><td>${esc(a.dob)}</td></tr>
+          <tr><td class="l">অভিভাবকের মোবাইল</td><td>${esc(a.guardian_mobile)}</td></tr>
+          ${a.roll?`<tr><td class="l">রোল নম্বর</td><td>${esc(a.roll)}</td></tr>`:''}
+        </table>
+      </div>
+      <table class="sec-tbl">
+        <tr><td class="l">সেশন</td><td style="width:24%">${esc(a.session_name)}</td><td class="l">শ্রেণি</td><td>${esc(a.class_name)}</td></tr>
+        <tr><td class="l">পরীক্ষা</td><td colspan="3">${esc(a.exam_name)}</td></tr>
+        <tr><td class="l">আবেদন ফি</td><td>৳ ${a.fee_amount}</td><td class="l">পেমেন্ট পদ্ধতি</td><td>${esc(a.payment_method)}</td></tr>
+        <tr><td class="l">প্রেরকের নম্বর</td><td>${esc(a.sender_mobile||'')}</td><td class="l">ট্রানজেকশন আইডি</td><td>${esc(a.txn_id)}</td></tr>
       </table>
-    </div></body></html>`;
+      <div class="ftr">
+        <div class="sig"><div class="ln">আবেদনকারী/অভিভাবকের স্বাক্ষর</div></div>
+        <div class="sig"><div class="ln">অনুমোদনকারীর স্বাক্ষর ও সিল</div></div>
+      </div>
+      <div class="gen-at">তৈরির সময়: ${esc(printedAt)}</div>
+      </div>
+    </div></div></body></html>`;
   try{
     toast('PDF প্রস্তুত হচ্ছে...','warning');
     await adLoadPdfLibs();
     const host=document.createElement('iframe');
-    host.style.cssText='position:fixed;right:-10000px;bottom:0;width:760px;height:1000px;opacity:0';
+    host.style.cssText='position:fixed;right:-10000px;bottom:0;width:794px;height:1123px;opacity:0';
     document.body.appendChild(host);
     const doc=host.contentDocument||host.contentWindow.document;
     doc.open();doc.write(html);doc.close();
     await adWaitDocReady(doc);
     await new Promise(r=>setTimeout(r,300));
-    const wrap=doc.querySelector('.wrap');
-    const canvas=await window.html2canvas(wrap,{scale:2,useCORS:true,backgroundColor:'#fff',logging:false});
+    const pageEl=doc.querySelector('.outer');
+    const canvas=await window.html2canvas(pageEl,{scale:2,useCORS:true,backgroundColor:'#fff',logging:false});
     const imgData=canvas.toDataURL('image/jpeg',0.95);
     const jsPDF=window.jspdf.jsPDF;
-    const pdf=new jsPDF('p','mm','a4');
-    const pageW=210,imgH=canvas.height*pageW/canvas.width;
-    pdf.addImage(imgData,'JPEG',0,0,pageW,imgH);
+    const pdf=new jsPDF('p','mm','a4'); // A4 = 210mm × 297mm
+    pdf.addImage(imgData,'JPEG',0,0,210,297);
     pdf.save('application-'+a.app_no+'.pdf');
     document.body.removeChild(host);
     toast('PDF ডাউনলোড সম্পন্ন');
@@ -7187,12 +7342,12 @@ function dappRender(list){
       <td style="font-family:monospace;font-size:.8rem">${esc(a.app_no||'')}</td>
       <td>
         <div style="font-weight:700">${esc(a.name_bn||'')}</div>
-        <div style="font-size:.72rem;color:var(--mu)">${esc(a.guardian_mobile||'')}</div>
+        <div style="font-size:.72rem;color:var(--mu)">${esc(a.guardian_mobile||'')}${a.roll?' • রোল: '+esc(a.roll):''}</div>
       </td>
       <td style="font-size:.82rem">${esc(a.inst_name||'')}</td>
       <td><span class="cls-bdg" style="font-size:.72rem">${esc(a.class_name||'')}</span></td>
       <td>৳${a.fee_amount||0}</td>
-      <td style="font-size:.78rem">${esc(a.payment_method||'')}<br><span style="font-family:monospace">${esc(a.txn_id||'')}</span></td>
+      <td style="font-size:.78rem">${esc(a.payment_method||'')}${a.sender_mobile?' ('+esc(a.sender_mobile)+')':''}<br><span style="font-family:monospace">${esc(a.txn_id||'')}</span></td>
       <td style="font-size:.76rem;color:var(--mu)">${fmtDate(a.created_at)}</td>
       <td><div class="abs">
         <button class="btn btn-ok btn-sm" onclick="dappApprove('${esc(a.id)}','${esc(a.name_bn)}')"><i class="fas fa-check"></i></button>
