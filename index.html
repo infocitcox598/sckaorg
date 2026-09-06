@@ -2059,6 +2059,7 @@ select.fi{padding-left:12px}
     <div id="da-step-form" class="card" style="display:none">
       <div class="ch"><div class="ct"><i class="fas fa-file-signature"></i> শিক্ষার্থীর তথ্য</div></div>
       <input type="hidden" id="da-photo-data">
+      <input type="hidden" id="da-photo-fileid">
       <div class="fg"><label class="fl">শ্রেণি *</label>
         <select class="fi" id="da-cls" onchange="daClsChange()" required><option value="">শ্রেণি বেছে নিন</option></select></div>
       <div class="fgrid">
@@ -3572,6 +3573,13 @@ select.fi{padding-left:12px}
 
   const ok=(message,extra={})=>({success:true,message,...extra});
   const err=(message)=>({success:false,message:String(message||'ত্রুটি')});
+  async function deleteDrivePhotoFile(fileId){
+    try{
+      const webapp=window.__DRIVE_UPLOAD_WEBAPP;
+      if(!webapp||!fileId) return;
+      await fetch(webapp,{method:'POST',body:JSON.stringify({action:'delete',fileId})});
+    }catch(e){ /* best-effort — ছবি ডিলিট ব্যর্থ হলেও মূল ডিলিট আটকাবে না */ }
+  }
 
   // ── Settings: single doc app_settings/main ──
   async function loadSettings(){
@@ -3947,6 +3955,10 @@ select.fi{padding-left:12px}
           return err('শিক্ষার্থী মুছে ফেলার অনুমতি বন্ধ আছে — সুপার এডমিনের সাথে যোগাযোগ করুন');
         }
       }
+      try{
+        const snap=await db.collection('students').doc(String(id)).get();
+        if(snap.exists && snap.data().photo_file_id) await deleteDrivePhotoFile(snap.data().photo_file_id);
+      }catch(e){}
       return STD.del(id);
     },
 
@@ -4176,7 +4188,7 @@ select.fi{padding-left:12px}
           name_bn:d.name_bn||'',name_en:d.name_en||'',
           father_name:d.father_name||'',mother_name:d.mother_name||'',
           dob:d.dob||'',roll:d.roll||'',inst_mobile:'',guardian_mobile:d.guardian_mobile||'',
-          photo:d.photo||'',created_at:Date.now()
+          photo:d.photo||'',photo_file_id:d.photo_file_id||'',created_at:Date.now()
         });
         if(d.txn_id) await db.collection('used_txn_ids').add({txn_id:String(d.txn_id).trim(),app_no:d.app_no||'',used_at:Date.now()});
         await db.collection('direct_applications').doc(String(id)).delete();
@@ -4185,8 +4197,10 @@ select.fi{padding-left:12px}
     },
     async rejectDirectApplication(id){
       try{
+        const snap=await db.collection('direct_applications').doc(String(id)).get();
+        if(snap.exists && snap.data().photo_file_id) await deleteDrivePhotoFile(snap.data().photo_file_id);
         await db.collection('direct_applications').doc(String(id)).delete();
-        return ok('আবেদন বাতিল করা হয়েছে');
+        return ok('আবেদন বাতিল করা হয়েছে ও ছবি মুছে ফেলা হয়েছে');
       }catch(e){ return err(e.message); }
     },
     async updateApplication(d){ return APP.update(d); },
@@ -6930,8 +6944,11 @@ function daClsChange(){
   DA_SEL.cls=opt&&opt.value?{id:opt.value,name:opt.textContent,fee:Number(opt.dataset.fee||0)}:null;
 }
 function daPhotoLinkTyped(){
-  // ম্যানুয়ালি লিংক টাইপ করলে আগের আপলোড করা ছবির ডেটা মুছে দাও (সংঘাত এড়াতে)
+  // ম্যানুয়ালি লিংক টাইপ করলে আগের আপলোড করা ছবি (থাকলে) Drive থেকে মুছে দাও এবং ডেটা রিসেট করো
+  const prevFileId=document.getElementById('da-photo-fileid').value;
+  if(prevFileId) daDeleteDriveFile(prevFileId);
   document.getElementById('da-photo-data').value='';
+  document.getElementById('da-photo-fileid').value='';
   const st=document.getElementById('da-photo-status');if(st)st.textContent='';
   const pv=document.getElementById('da-photo-preview');if(pv)pv.style.display='none';
 }
@@ -6982,12 +6999,18 @@ function daCompressImage(file,maxBytes){
     reader.readAsDataURL(file);
   });
 }
+function daDeleteDriveFile(fileId){
+  const webapp=window.__DRIVE_UPLOAD_WEBAPP;
+  if(!webapp||!fileId) return;
+  fetch(webapp,{method:'POST',body:JSON.stringify({action:'delete',fileId})}).catch(()=>{});
+}
 async function daUploadPhoto(fileInput){
   const file=fileInput.files&&fileInput.files[0];
   if(!file)return;
   const status=document.getElementById('da-photo-status');
   const preview=document.getElementById('da-photo-preview');
   const webapp=window.__DRIVE_UPLOAD_WEBAPP;
+  const prevFileId=document.getElementById('da-photo-fileid').value; // আগে আপলোড করা থাকলে, পরে রিপ্লেস হলে মুছে ফেলার জন্য
   if(!webapp){
     status.textContent='ছবি আপলোড সুবিধা চালু নেই — Drive লিংক ব্যবহার করুন';
     status.style.color='var(--er)';
@@ -7023,7 +7046,8 @@ async function daUploadPhoto(fileInput){
       fileName:stName+'.jpg',
       mimeType:'image/jpeg',
       data:base64,
-      folderId:window.__DRIVE_UPLOAD_FOLDER||''
+      folderId:window.__DRIVE_UPLOAD_FOLDER||'',
+      action:'upload'
     };
     // content-type সেট না করলে fetch 'text/plain' পাঠায় → CORS preflight এড়িয়ে যায় (Apps Script এর জন্য প্রয়োজনীয়)
     fetch(webapp,{method:'POST',body:JSON.stringify(payload)})
@@ -7031,9 +7055,12 @@ async function daUploadPhoto(fileInput){
       .then(res=>{
         if(res.success){
           document.getElementById('da-photo-data').value=res.url;
+          document.getElementById('da-photo-fileid').value=res.fileId||'';
           document.getElementById('da-photo-link').value='';
           status.style.color='var(--ok)';
           status.innerHTML='<i class="fas fa-circle-check"></i> ছবি সফলভাবে আপলোড হয়েছে ('+Math.round(blob.size/1024)+' KB)';
+          // আগের আপলোড করা ছবি (থাকলে) মুছে ফেলো — একাধিক ছবি জমে থাকা এড়াতে
+          if(prevFileId && prevFileId!==res.fileId) daDeleteDriveFile(prevFileId);
         }else{
           status.style.color='var(--er)';
           status.textContent='আপলোড ব্যর্থ: '+(res.message||'অজানা ত্রুটি');
@@ -7098,6 +7125,7 @@ function daSubmit(){
     guardian_mobile:document.getElementById('da-mobile').value.trim(),
     roll:document.getElementById('da-roll').value.trim(),
     photo:document.getElementById('da-photo-data').value,
+    photo_file_id:document.getElementById('da-photo-fileid').value,
     fee_amount:DA_SEL.cls.fee||0,
     payment_method:method, sender_mobile:senderMobile, txn_id:txn, payment_amount:DA_SEL.cls.fee||0
   };
