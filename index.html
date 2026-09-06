@@ -1187,6 +1187,7 @@ select.fi{padding-left:12px}
     <form onsubmit="stdSave(event)" id="std-form">
       <input type="hidden" id="std-eid">
       <input type="hidden" id="std-photo-data">
+      <input type="hidden" id="std-photo-fileid">
 
       <!-- Photo + basic info -->
       <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:4px">
@@ -1204,9 +1205,15 @@ select.fi{padding-left:12px}
             <div class="iw"><i class="fas fa-user ico"></i><input class="fi" id="std-nm-bn" placeholder="বাংলায় নাম" required></div></div>
           <div class="fg"><label class="fl">শিক্ষার্থীর নাম (ইংরেজি) *</label>
             <div class="iw"><i class="fas fa-user-tag ico"></i><input class="fi" id="std-nm-en" placeholder="English Name" required></div></div>
-          <div class="fg"><label class="fl">ছবির Drive লিংক</label>
+          <div class="fg"><label class="fl">ছবির Drive লিংক <span style="color:var(--mu);font-weight:400">অথবা আপলোড করুন</span></label>
             <div class="iw"><i class="fab fa-google-drive ico"></i><input class="fi" id="std-photo-link" placeholder="https://drive.google.com/file/d/..." oninput="photoLinkChange(this,'std')"></div>
             <small style="color:var(--mu);font-size:.72rem">শেয়ার লিংক পেস্ট করুন (Anyone with link – Viewer)</small>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+              <input type="file" id="std-photo-file" accept="image/*" style="display:none" onchange="genPhotoUpload(this,'std')">
+              <button type="button" class="btn btn-ol btn-sm" onclick="document.getElementById('std-photo-file').click()">
+                <i class="fas fa-upload"></i> ছবি আপলোড করুন</button>
+              <span id="std-photo-status" style="font-size:.74rem;color:var(--mu)"></span>
+            </div>
           </div>
         </div>
       </div>
@@ -2893,6 +2900,13 @@ select.fi{padding-left:12px}
               <input class="fi" id="at-manual" placeholder="রেজি নং বা রোল" style="flex:1;min-width:160px">
               <button class="btn btn-pr" onclick="atManualSubmit()"><i class="fas fa-check"></i> উপস্থিত করুন</button>
             </div></div>
+          <div class="fg" id="at-script-box" style="display:none;margin-top:14px;padding:12px;border:1.5px dashed var(--ac);border-radius:10px;background:rgba(37,99,235,.05)">
+            <label class="fl" style="color:var(--ac)"><i class="fas fa-file-signature"></i> <span id="at-script-for"></span> — এখন খাতার নম্বর স্ক্যান/লিখুন</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+              <input class="fi" id="at-script-no" placeholder="খাতার নম্বর" style="flex:1;min-width:160px" onkeydown="if(event.key==='Enter'){event.preventDefault();atScriptSubmit();}">
+              <button class="btn btn-ok" onclick="atScriptSubmit()"><i class="fas fa-check"></i> সংরক্ষণ</button>
+              <button class="btn btn-ol" onclick="atScriptSkip()"><i class="fas fa-forward"></i> স্কিপ</button>
+            </div></div>
         </div>
 
         <div class="card">
@@ -2915,8 +2929,8 @@ select.fi{padding-left:12px}
           </div>
           <div class="tw">
             <table>
-              <thead><tr><th>#</th><th>ছবি</th><th>রেজি</th><th>রোল</th><th>নাম</th><th>শ্রেণি</th><th>কক্ষ</th><th>সময়</th><th>অ্যাকশন</th></tr></thead>
-              <tbody id="at-tbl"><tr><td colspan="9" class="te">সেশন বেছে নিন</td></tr></tbody>
+              <thead><tr><th>#</th><th>ছবি</th><th>রেজি</th><th>রোল</th><th>নাম</th><th>শ্রেণি</th><th>কক্ষ</th><th>খাতার নম্বর</th><th>সময়</th><th>অ্যাকশন</th></tr></thead>
+              <tbody id="at-tbl"><tr><td colspan="10" class="te">সেশন বেছে নিন</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -3183,6 +3197,7 @@ select.fi{padding-left:12px}
           <div class="ch"><div class="ct"><i class="fas fa-user-graduate"></i> শিক্ষার্থীর তথ্য</div></div>
           <form onsubmit="stdPageSave(event)" id="std-page-form">
             <input type="hidden" id="sp-photo-data">
+            <input type="hidden" id="sp-photo-fileid">
 
             <!-- Photo + Name row -->
             <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:8px;align-items:flex-start">
@@ -3198,9 +3213,15 @@ select.fi{padding-left:12px}
                   <div class="iw"><i class="fas fa-user ico"></i><input class="fi" id="sp-nm-bn" placeholder="বাংলায় নাম" required></div></div>
                 <div class="fg"><label class="fl">শিক্ষার্থীর নাম (ইংরেজি) *</label>
                   <div class="iw"><i class="fas fa-user-tag ico"></i><input class="fi" id="sp-nm-en" placeholder="English Name" required></div></div>
-                <div class="fg"><label class="fl">ছবির Drive লিংক</label>
+                <div class="fg"><label class="fl">ছবির Drive লিংক <span style="color:var(--mu);font-weight:400">অথবা আপলোড করুন</span></label>
                   <div class="iw"><i class="fab fa-google-drive ico"></i><input class="fi" id="sp-photo-link" placeholder="https://drive.google.com/file/d/..." oninput="photoLinkChange(this,'sp')"></div>
                   <small style="color:var(--mu);font-size:.72rem">শেয়ার লিংক পেস্ট করুন (Anyone with link – Viewer)</small>
+                  <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+                    <input type="file" id="sp-photo-file" accept="image/*" style="display:none" onchange="genPhotoUpload(this,'sp')">
+                    <button type="button" class="btn btn-ol btn-sm" onclick="document.getElementById('sp-photo-file').click()">
+                      <i class="fas fa-upload"></i> ছবি আপলোড করুন</button>
+                    <span id="sp-photo-status" style="font-size:.74rem;color:var(--mu)"></span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -4068,6 +4089,12 @@ select.fi{padding-left:12px}
     async deleteAttendance(id){
       try{ await db.collection('attendance').doc(String(id)).delete(); return ok('মুছে ফেলা হয়েছে'); }
       catch(e){ return err(e.message); }
+    },
+    async setAttendanceScriptNo(attendanceId,scriptNo){
+      try{
+        await db.collection('attendance').doc(String(attendanceId)).update({script_no:String(scriptNo||'').trim()});
+        return ok('খাতার নম্বর সংরক্ষিত হয়েছে');
+      }catch(e){ return err(e.message); }
     },
     async deleteAttendanceBulk(d){
       if(!d||!d.session_id) return err('সেশন প্রয়োজন');
@@ -5449,9 +5476,12 @@ function photoLinkChange(input, prefix){
   const link=input.value.trim();
   const direct=driveToImage(link);
   const hidden=document.getElementById(prefix==='sp'?'sp-photo-data':'std-photo-data');
+  const fidEl=document.getElementById(prefix==='sp'?'sp-photo-fileid':'std-photo-fileid');
   const img=document.getElementById(prefix==='sp'?'sp-photo-img':'photo-img');
   const ph=document.getElementById(prefix==='sp'?'sp-photo-ph':'photo-ph-icon');
   const wrap=document.getElementById(prefix==='sp'?'sp-photo-prev':'photo-prev');
+  // ম্যানুয়ালি লিংক টাইপ করলে আগে আপলোড করা ছবি (থাকলে) Drive থেকে মুছে দাও
+  if(fidEl && fidEl.value){ daDeleteDriveFile(fidEl.value); fidEl.value=''; }
   hidden.value=direct;
   if(direct){
     img.src=direct;img.style.display='block';ph.style.display='none';wrap.classList.add('has-img');
@@ -5459,6 +5489,58 @@ function photoLinkChange(input, prefix){
   }else{
     img.style.display='none';ph.style.display='';wrap.classList.remove('has-img');
   }
+}
+async function genPhotoUpload(fileInput,prefix){
+  const ids=prefix==='sp'
+    ?{status:'sp-photo-status',link:'sp-photo-link',data:'sp-photo-data',fileid:'sp-photo-fileid',name:'sp-nm-bn',img:'sp-photo-img',ph:'sp-photo-ph',wrap:'sp-photo-prev'}
+    :{status:'std-photo-status',link:'std-photo-link',data:'std-photo-data',fileid:'std-photo-fileid',name:'std-nm-bn',img:'photo-img',ph:'photo-ph-icon',wrap:'photo-prev'};
+  const file=fileInput.files&&fileInput.files[0];
+  if(!file)return;
+  const status=document.getElementById(ids.status);
+  const webapp=window.__DRIVE_UPLOAD_WEBAPP;
+  const prevFileId=document.getElementById(ids.fileid).value;
+  if(!webapp){
+    status.textContent='ছবি আপলোড সুবিধা চালু নেই — Drive লিংক ব্যবহার করুন';
+    status.style.color='var(--er)';fileInput.value='';return;
+  }
+  if(!file.type.startsWith('image/')){toast('শুধুমাত্র ছবি আপলোড করা যাবে','warning');fileInput.value='';return;}
+  status.style.color='var(--mu)';status.textContent='ছবি প্রস্তুত হচ্ছে...';
+  const MAX_BYTES=200*1024;
+  let blob;
+  try{ blob=await daCompressImage(file,MAX_BYTES); }
+  catch(e){ status.style.color='var(--er)';status.textContent='ছবি প্রক্রিয়া ব্যর্থ: '+e.message;fileInput.value='';return; }
+  if(blob.size>MAX_BYTES){
+    status.style.color='var(--er)';status.textContent='ছবিটি ২০০ কেবির নিচে আনা যায়নি, অন্য ছবি ব্যবহার করুন';fileInput.value='';return;
+  }
+  status.textContent='আপলোড হচ্ছে... ('+Math.round(blob.size/1024)+' KB)';
+  const reader=new FileReader();
+  reader.onload=function(){
+    const base64=reader.result.split(',')[1];
+    const stName=daSanitizeFileName(document.getElementById(ids.name).value);
+    const payload={fileName:stName+'.jpg',mimeType:'image/jpeg',data:base64,folderId:window.__DRIVE_UPLOAD_FOLDER||'',action:'upload'};
+    fetch(webapp,{method:'POST',body:JSON.stringify(payload)})
+      .then(r=>r.json())
+      .then(res=>{
+        if(res.success){
+          document.getElementById(ids.data).value=res.url;
+          document.getElementById(ids.fileid).value=res.fileId||'';
+          document.getElementById(ids.link).value='';
+          const img=document.getElementById(ids.img),ph=document.getElementById(ids.ph),wrap=document.getElementById(ids.wrap);
+          img.src=res.url;img.style.display='block';ph.style.display='none';wrap.classList.add('has-img');
+          status.style.color='var(--ok)';
+          status.innerHTML='<i class="fas fa-circle-check"></i> আপলোড সফল ('+Math.round(blob.size/1024)+' KB)';
+          if(prevFileId && prevFileId!==res.fileId) daDeleteDriveFile(prevFileId);
+        }else{
+          status.style.color='var(--er)';
+          status.textContent='আপলোড ব্যর্থ: '+(res.message||'অজানা ত্রুটি');
+        }
+      }).catch(e=>{
+        status.style.color='var(--er)';
+        status.textContent='আপলোড ব্যর্থ: '+e.message;
+      });
+  };
+  reader.onerror=function(){ status.style.color='var(--er)';status.textContent='ফাইল পড়া যায়নি'; };
+  reader.readAsDataURL(blob);
 }
 
 
@@ -5755,7 +5837,9 @@ function spSesChange(){
 function spReset(){
   document.getElementById('std-page-form').reset();
   document.getElementById('sp-photo-data').value='';
+  document.getElementById('sp-photo-fileid').value='';
   const sl=document.getElementById('sp-photo-link');if(sl)sl.value='';
+  const sst=document.getElementById('sp-photo-status');if(sst)sst.textContent='';
   document.getElementById('sp-photo-img').src='';document.getElementById('sp-photo-img').style.display='none';
   document.getElementById('sp-photo-ph').style.display='';
   document.getElementById('sp-photo-prev').classList.remove('has-img');
@@ -5794,7 +5878,8 @@ function stdPageSave(e){
     roll:document.getElementById('sp-roll').value.trim(),
     inst_mobile:document.getElementById('sp-imob').value.trim(),
     guardian_mobile:document.getElementById('sp-gmob').value.trim(),
-    photo:document.getElementById('sp-photo-data').value
+    photo:document.getElementById('sp-photo-data').value,
+    photo_file_id:document.getElementById('sp-photo-fileid').value
   };
 
   google.script.run.withSuccessHandler(res=>{
@@ -5924,6 +6009,8 @@ function stdEditOpen(idx){
   document.getElementById('std-imob').value=s.inst_mobile||'';
   document.getElementById('std-gmob').value=s.guardian_mobile||'';
   document.getElementById('std-photo-data').value=s.photo||'';
+  document.getElementById('std-photo-fileid').value='';
+  const stt=document.getElementById('std-photo-status');if(stt)stt.textContent='';
   const lk=document.getElementById('std-photo-link');if(lk)lk.value=s.photo||'';
 
   // Photo preview
@@ -5987,7 +6074,8 @@ function stdSave(e){
     dob:document.getElementById('std-dob').value,roll:(CR==='institution'?((window._slFiltered||[]).find(x=>String(x.id)===String(id))?.roll||''):document.getElementById('std-roll').value.trim()),
     inst_mobile:document.getElementById('std-imob').value.trim(),
     guardian_mobile:document.getElementById('std-gmob').value.trim(),
-    photo:document.getElementById('std-photo-data').value
+    photo:document.getElementById('std-photo-data').value,
+    photo_file_id:document.getElementById('std-photo-fileid').value
   };
   google.script.run.withSuccessHandler(res=>{
     btn.disabled=false;btn.innerHTML='<i class="fas fa-save"></i> সংরক্ষণ করুন';
@@ -8858,6 +8946,7 @@ async function adDownloadAllPdf(){
 // উপস্থিতি ম্যানেজমেন্ট (Attendance)
 // =====================================================================
 let AT_LIST=[], AT_SCANNER=null, AT_LAST='', AT_LAST_T=0, AT_EXAMS=[];
+let AT_PENDING_ATT_ID=null, AT_PENDING_STU_NAME='';
 function attendInit(){
   const ses=document.getElementById('at-ses');
   ses.innerHTML='<option value="">-- সেশন --</option>'+SESS.map(s=>`<option value="${esc(s.id)}">${esc(s.session_name||s.name)}</option>`).join('');
@@ -8921,7 +9010,7 @@ function atRender(){
   document.getElementById('at-cnt').textContent=data.length+' জন';
   // শ্রেণি অনুযায়ী চিপস (পুরো AT_LIST থেকে, সার্চ-ফিল্টার ছাড়া)
   atRenderClsChips();
-  if(!data.length){tb.innerHTML='<tr><td colspan="9" class="te">কোনো উপস্থিতি নেই</td></tr>';return;}
+  if(!data.length){tb.innerHTML='<tr><td colspan="10" class="te">কোনো উপস্থিতি নেই</td></tr>';return;}
   tb.innerHTML=data.map((a,i)=>{
     const st=(window.STDS||[]).find(x=>x.id===a.student_id)||{};
     const tm=new Date(a.scanned_at).toLocaleString('bn-BD');
@@ -8930,6 +9019,9 @@ function atRender(){
       :`<div class="std-photo" style="width:36px;height:36px"><i class="fas fa-user"></i></div>`;
     const clsTag=cn?`<span class="pay-ses-tag"><i class="fas fa-graduation-cap"></i> ${esc(cn)}</span>`:'<span style="color:var(--mu)">—</span>';
     const rmTag=a.room?`<span class="pay-ses-tag" style="background:rgba(217,164,65,.12);color:var(--ac)"><i class="fas fa-door-open"></i> ${esc(a.room)}</span>`:'<span style="color:var(--mu)">—</span>';
+    const scriptTag=a.script_no
+      ?`<span class="pay-ses-tag" style="background:rgba(37,99,235,.1);color:var(--ac);cursor:pointer" onclick="atEditScriptNo('${esc(a.id)}','${esc(a.script_no)}')"><i class="fas fa-file-signature"></i> ${esc(a.script_no)}</span>`
+      :`<button class="btn btn-ol btn-sm" onclick="atEditScriptNo('${esc(a.id)}','')"><i class="fas fa-plus"></i></button>`;
     return `<tr>
       <td>${i+1}</td>
       <td>${photoTd}</td>
@@ -8938,6 +9030,7 @@ function atRender(){
       <td>${esc(st.name_bn||st.name_en||a.student_id.slice(0,8))}</td>
       <td>${clsTag}</td>
       <td>${rmTag}</td>
+      <td>${scriptTag}</td>
       <td>${esc(tm)}</td>
       <td><button class="btn btn-er btn-sm" onclick="atDelete('${esc(a.id)}')"><i class="fas fa-trash"></i></button></td>
     </tr>`;
@@ -9045,11 +9138,11 @@ async function atDownloadPdf(){
       const photoTd=st.photo?`<img src="${esc(photoMap[st.photo]||st.photo)}" style="width:30px;height:30px;object-fit:cover;border-radius:4px;border:1px solid #000">`:'';
       return `<tr><td>${i+1}</td><td>${photoTd}</td><td>${esc(st.reg_no||'')}</td><td>${esc(st.roll||'')}</td>
         <td style="text-align:left">${esc(st.name_bn||st.name_en||'')}</td>
-        <td>${esc(a.room||'-')}</td><td>${esc(tm)}</td></tr>`;
+        <td>${esc(a.room||'-')}</td><td>${esc(a.script_no||'-')}</td><td>${esc(tm)}</td></tr>`;
     }).join('');
     return `<div class="sec">
       <div class="sec-h">শ্রেণি: ${esc(cid?clsName(cid):'অজানা')} <span class="sec-c">${grp[cid].length} জন</span></div>
-      <table class="at-pdf-tbl"><thead><tr><th>#</th><th>ছবি</th><th>রেজিঃ</th><th>রোল</th><th>নাম</th><th>কক্ষ</th><th>সময়</th></tr></thead>
+      <table class="at-pdf-tbl"><thead><tr><th>#</th><th>ছবি</th><th>রেজিঃ</th><th>রোল</th><th>নাম</th><th>কক্ষ</th><th>খাতার নম্বর</th><th>সময়</th></tr></thead>
       <tbody>${rows}</tbody></table>
     </div>`;
   }).join('');
@@ -9160,6 +9253,11 @@ function atHandleScan(txt){
   const now=Date.now();
   if(txt===AT_LAST && (now-AT_LAST_T)<3000) return;
   AT_LAST=txt; AT_LAST_T=now;
+  if(AT_PENDING_ATT_ID){
+    // খাতার নম্বর মোড — এই স্ক্যানটাই খাতার নম্বর হিসেবে ধরা হবে
+    atSaveScriptNo(txt);
+    return;
+  }
   // payload: SCKAB|ID:..|REG:..|ROLL:..
   let id='', reg='', roll='';
   txt.split('|').forEach(p=>{
@@ -9190,6 +9288,16 @@ function atMarkBy(payload){
           infoOpen((stu.name_bn||stu.name_en||'এই শিক্ষার্থী')+' — ইতিমধ্যে উপস্থিতি নেওয়া হয়ে গেছে।','ইতিমধ্যে উপস্থিত','fa-circle-exclamation','var(--wa)');
         } else {
           toast((stu.name_bn||stu.name_en||'')+': '+r.message,'success');
+          // খাতার নম্বর নেওয়ার ধাপ চালু করো
+          AT_PENDING_ATT_ID=r.row.id;
+          AT_PENDING_STU_NAME=stu.name_bn||stu.name_en||'শিক্ষার্থী';
+          const box=document.getElementById('at-script-box');
+          if(box){
+            document.getElementById('at-script-for').textContent=AT_PENDING_STU_NAME;
+            box.style.display='';
+            document.getElementById('at-script-no').value='';
+          }
+          const st=document.getElementById('at-scan-status');if(st)st.textContent='এবার খাতার নম্বর স্ক্যান/লিখুন...';
         }
         atRefreshList();
       } else toast(r.message,'error');
@@ -9207,6 +9315,40 @@ function atMarkBy(payload){
     doMark(r.data);
   }).withFailureHandler(e=>toast(e.message,'error'))
     .lookupStudentByReg({session_id:sid,reg_no:payload.reg_no||'',roll:payload.roll||''});
+}
+function atSaveScriptNo(scriptNo){
+  const attId=AT_PENDING_ATT_ID;
+  if(!attId)return;
+  scriptNo=String(scriptNo||'').trim();
+  google.script.run.withSuccessHandler(r=>{
+    if(r.success) toast('খাতার নম্বর সংরক্ষিত: '+scriptNo,'success');
+    else toast(r.message,'error');
+    AT_PENDING_ATT_ID=null;
+    const box=document.getElementById('at-script-box');if(box)box.style.display='none';
+    const st=document.getElementById('at-scan-status');if(st)st.textContent='স্ক্যান চলছে...';
+    atRefreshList();
+  }).withFailureHandler(()=>{
+    toast('খাতার নম্বর সংরক্ষণ ব্যর্থ','error');
+    AT_PENDING_ATT_ID=null;
+    const box=document.getElementById('at-script-box');if(box)box.style.display='none';
+  }).setAttendanceScriptNo(attId,scriptNo);
+}
+function atScriptSubmit(){
+  const v=document.getElementById('at-script-no').value.trim();
+  if(!v){toast('খাতার নম্বর দিন','warning');return;}
+  atSaveScriptNo(v);
+}
+function atScriptSkip(){
+  AT_PENDING_ATT_ID=null;
+  const box=document.getElementById('at-script-box');if(box)box.style.display='none';
+  const st=document.getElementById('at-scan-status');if(st)st.textContent='স্ক্যান চলছে...';
+}
+function atEditScriptNo(attId,current){
+  const v=prompt('খাতার নম্বর লিখুন:',current||'');
+  if(v===null)return;
+  google.script.run.withSuccessHandler(r=>{
+    if(r.success){toast('আপডেট হয়েছে');atRefreshList();}else toast(r.message,'error');
+  }).withFailureHandler(()=>toast('ব্যর্থ','error')).setAttendanceScriptNo(attId,v.trim());
 }
 
 
