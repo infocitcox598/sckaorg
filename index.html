@@ -9266,11 +9266,7 @@ function atHandleScan(txt){
   const now=Date.now();
   if(txt===AT_LAST && (now-AT_LAST_T)<3000) return;
   AT_LAST=txt; AT_LAST_T=now;
-  if(AT_PENDING_ATT_ID){
-    // খাতার নম্বর মোড — এই স্ক্যানটাই খাতার নম্বর হিসেবে ধরা হবে
-    atSaveScriptNo(txt);
-    return;
-  }
+  if(AT_PENDING_ATT_ID) return; // খাতার নম্বরের অপেক্ষায় থাকা অবস্থায় QR স্ক্যানার বন্ধ থাকে, তাই এখানে পৌঁছানোর কথা না
   // payload: SCKAB|ID:..|REG:..|ROLL:..
   let id='', reg='', roll='';
   txt.split('|').forEach(p=>{
@@ -9301,16 +9297,17 @@ function atMarkBy(payload){
           infoOpen((stu.name_bn||stu.name_en||'এই শিক্ষার্থী')+' — ইতিমধ্যে উপস্থিতি নেওয়া হয়ে গেছে।','ইতিমধ্যে উপস্থিত','fa-circle-exclamation','var(--wa)');
         } else {
           toast((stu.name_bn||stu.name_en||'')+': '+r.message,'success');
-          // খাতার নম্বর নেওয়ার ধাপ চালু করো
+          // খাতার নম্বর নেওয়ার ধাপ চালু করো — একই QR পুনরায় স্ক্যান হয়ে ভুল নম্বর বসে যাওয়া ঠেকাতে ক্যামেরা বন্ধ করো
           AT_PENDING_ATT_ID=r.row.id;
           AT_PENDING_STU_NAME=stu.name_bn||stu.name_en||'শিক্ষার্থী';
+          atStopScan();
           const box=document.getElementById('at-script-box');
           if(box){
             document.getElementById('at-script-for').textContent=AT_PENDING_STU_NAME;
             box.style.display='';
             document.getElementById('at-script-no').value='';
           }
-          const st=document.getElementById('at-scan-status');if(st)st.textContent='এবার খাতার নম্বর স্ক্যান/লিখুন...';
+          const st=document.getElementById('at-scan-status');if(st)st.textContent='খাতার নম্বর দিন (ক্যামেরা সাময়িক বন্ধ)...';
         }
         atRefreshList();
       } else toast(r.message,'error');
@@ -9338,12 +9335,13 @@ function atSaveScriptNo(scriptNo){
     else toast(r.message,'error');
     AT_PENDING_ATT_ID=null;
     const box=document.getElementById('at-script-box');if(box)box.style.display='none';
-    const st=document.getElementById('at-scan-status');if(st)st.textContent='স্ক্যান চলছে...';
+    atStartScan(); // পরবর্তী শিক্ষার্থীর জন্য ক্যামেরা আবার চালু করো
     atRefreshList();
   }).withFailureHandler(()=>{
     toast('খাতার নম্বর সংরক্ষণ ব্যর্থ','error');
     AT_PENDING_ATT_ID=null;
     const box=document.getElementById('at-script-box');if(box)box.style.display='none';
+    atStartScan();
   }).setAttendanceScriptNo(attId,scriptNo);
 }
 function atScriptSubmit(){
@@ -9415,7 +9413,7 @@ function atScriptSkip(){
   atOcrStopStream();
   AT_PENDING_ATT_ID=null;
   const box=document.getElementById('at-script-box');if(box)box.style.display='none';
-  const st=document.getElementById('at-scan-status');if(st)st.textContent='স্ক্যান চলছে...';
+  atStartScan(); // পরবর্তী শিক্ষার্থীর জন্য ক্যামেরা আবার চালু করো
 }
 function atEditScriptNo(attId,current){
   const v=prompt('খাতার নম্বর লিখুন:',current||'');
