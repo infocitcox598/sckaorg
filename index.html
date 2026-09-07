@@ -10,6 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
@@ -2901,12 +2902,24 @@ select.fi{padding-left:12px}
               <button class="btn btn-pr" onclick="atManualSubmit()"><i class="fas fa-check"></i> উপস্থিত করুন</button>
             </div></div>
           <div class="fg" id="at-script-box" style="display:none;margin-top:14px;padding:12px;border:1.5px dashed var(--ac);border-radius:10px;background:rgba(37,99,235,.05)">
-            <label class="fl" style="color:var(--ac)"><i class="fas fa-file-signature"></i> <span id="at-script-for"></span> — এখন খাতার নম্বর স্ক্যান/লিখুন</label>
+            <label class="fl" style="color:var(--ac)"><i class="fas fa-file-signature"></i> <span id="at-script-for"></span> — এখন খাতার নম্বর দিন</label>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
               <input class="fi" id="at-script-no" placeholder="খাতার নম্বর" style="flex:1;min-width:160px" onkeydown="if(event.key==='Enter'){event.preventDefault();atScriptSubmit();}">
               <button class="btn btn-ok" onclick="atScriptSubmit()"><i class="fas fa-check"></i> সংরক্ষণ</button>
               <button class="btn btn-ol" onclick="atScriptSkip()"><i class="fas fa-forward"></i> স্কিপ</button>
-            </div></div>
+            </div>
+            <div style="margin-top:8px">
+              <button class="btn btn-wa btn-sm" id="at-ocr-btn" onclick="atOcrStart()"><i class="fas fa-camera"></i> ক্যামেরা দিয়ে নম্বর পড়ুন</button>
+              <span id="at-ocr-status" style="font-size:.75rem;color:var(--mu);margin-left:6px"></span>
+            </div>
+            <div id="at-ocr-box" style="display:none;margin-top:10px">
+              <video id="at-ocr-video" autoplay playsinline muted style="width:100%;max-width:320px;border-radius:8px;border:2px solid var(--ac)"></video>
+              <div style="margin-top:6px;display:flex;gap:8px">
+                <button class="btn btn-pr btn-sm" onclick="atOcrCapture()"><i class="fas fa-crosshairs"></i> ক্যাপচার করুন</button>
+                <button class="btn btn-ol btn-sm" onclick="atOcrCancel()"><i class="fas fa-times"></i> বাতিল</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="card">
@@ -9336,9 +9349,70 @@ function atSaveScriptNo(scriptNo){
 function atScriptSubmit(){
   const v=document.getElementById('at-script-no').value.trim();
   if(!v){toast('খাতার নম্বর দিন','warning');return;}
+  if(AT_OCR_STREAM) atOcrStopStream();
   atSaveScriptNo(v);
 }
+let AT_OCR_STREAM=null;
+async function atOcrStart(){
+  if(typeof Tesseract==='undefined'){toast('OCR লাইব্রেরি লোড হয়নি, একটু পর আবার চেষ্টা করুন','error');return;}
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('এই ব্রাউজারে ক্যামেরা সাপোর্ট নেই','error');return;}
+  atStopScan(); // QR স্ক্যানার বন্ধ করে ক্যামেরা মুক্ত করো
+  const btn=document.getElementById('at-ocr-btn');
+  const status=document.getElementById('at-ocr-status');
+  const box=document.getElementById('at-ocr-box');
+  const video=document.getElementById('at-ocr-video');
+  try{
+    AT_OCR_STREAM=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    video.srcObject=AT_OCR_STREAM;
+    box.style.display='';
+    btn.style.display='none';
+    status.style.color='var(--mu)';
+    status.textContent='খাতার নম্বরটা ফ্রেমে রাখুন, তারপর ক্যাপচার করুন';
+  }catch(e){
+    toast('ক্যামেরা চালু হয়নি: '+(e.message||e),'error');
+  }
+}
+function atOcrStopStream(){
+  if(AT_OCR_STREAM){ AT_OCR_STREAM.getTracks().forEach(t=>t.stop()); AT_OCR_STREAM=null; }
+  const box=document.getElementById('at-ocr-box');if(box)box.style.display='none';
+  const btn=document.getElementById('at-ocr-btn');if(btn)btn.style.display='';
+}
+function atOcrCancel(){
+  atOcrStopStream();
+  const st=document.getElementById('at-ocr-status');if(st)st.textContent='';
+  if(AT_PENDING_ATT_ID) atStartScan(); // আবার QR স্ক্যানিং চালু করো
+}
+async function atOcrCapture(){
+  const video=document.getElementById('at-ocr-video');
+  const status=document.getElementById('at-ocr-status');
+  const canvas=document.createElement('canvas');
+  canvas.width=video.videoWidth||640;canvas.height=video.videoHeight||480;
+  canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
+  atOcrStopStream();
+  status.style.color='var(--mu)';
+  status.textContent='নম্বর পড়া হচ্ছে...';
+  try{
+    const worker=await Tesseract.createWorker('eng');
+    await worker.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:'7'});
+    const {data:{text}}=await worker.recognize(canvas);
+    await worker.terminate();
+    const digits=(text||'').replace(/[^0-9]/g,'');
+    if(digits){
+      document.getElementById('at-script-no').value=digits;
+      status.style.color='var(--ok)';
+      status.textContent='শনাক্ত হয়েছে: '+digits+' — ভুল হলে ঠিক করে নিন, তারপর সংরক্ষণ করুন';
+    }else{
+      status.style.color='var(--er)';
+      status.textContent='কোনো সংখ্যা পড়া যায়নি — আবার চেষ্টা করুন বা ম্যানুয়ালি লিখুন';
+    }
+  }catch(e){
+    status.style.color='var(--er)';
+    status.textContent='OCR ব্যর্থ: '+(e.message||e);
+  }
+  if(AT_PENDING_ATT_ID) atStartScan();
+}
 function atScriptSkip(){
+  atOcrStopStream();
   AT_PENDING_ATT_ID=null;
   const box=document.getElementById('at-script-box');if(box)box.style.display='none';
   const st=document.getElementById('at-scan-status');if(st)st.textContent='স্ক্যান চলছে...';
