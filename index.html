@@ -2005,7 +2005,7 @@ select.fi{padding-left:12px}
           <i class="fas fa-file-signature"></i> সদস্য হতে আবেদন করুন
         </button>
       </div>
-      <div class="l-app">
+      <div class="l-app" id="l-da-row" style="display:none">
         <button onclick="daOpen()" class="l-app-btn" style="background:rgba(22,163,74,.1);border-color:rgba(22,163,74,.35);color:#16a34a">
           <i class="fas fa-user-graduate"></i> সরাসরি শিক্ষার্থী আবেদন করুন
         </button>
@@ -3779,7 +3779,7 @@ select.fi{padding-left:12px}
 
     async getPublicSettings(){
       const s=await loadSettings();
-      return {success:true,data:{inst_name:s.inst_name||'অ্যাডমিন ড্যাশবোর্ড',address:s.address||'',mobile:s.mobile||'',logo_url:s.logo_url||'',drive_upload_webapp:s.drive_upload_webapp||'',drive_upload_folder:s.drive_upload_folder||''}};
+      return {success:true,data:{inst_name:s.inst_name||'অ্যাডমিন ড্যাশবোর্ড',address:s.address||'',mobile:s.mobile||'',logo_url:s.logo_url||'',drive_upload_webapp:s.drive_upload_webapp||'',drive_upload_folder:s.drive_upload_folder||'',global_std_allow:s.global_std_allow!=='false'}};
     },
     async getSettings(){
       const s=await loadSettings();
@@ -4196,6 +4196,8 @@ select.fi{padding-left:12px}
       }catch(e){ return err(e.message); }
     },
     async submitDirectApplication(d){
+      const s=await loadSettings();
+      if(s.global_std_allow==='false') return err('বর্তমানে সরাসরি শিক্ষার্থী আবেদন গ্রহণ বন্ধ আছে — সুপার এডমিনের সাথে যোগাযোগ করুন');
       if(!d.name_bn||!d.inst_id||!d.session_id||!d.class_id) return err('আবশ্যক তথ্য অনুপস্থিত');
       if(!d.txn_id) return err('ট্রানজেকশন আইডি দিন');
       const txn=String(d.txn_id).trim();
@@ -4388,6 +4390,9 @@ document.addEventListener('DOMContentLoaded',()=>{
         }
         window.__DRIVE_UPLOAD_WEBAPP=d.drive_upload_webapp||'';
         window.__DRIVE_UPLOAD_FOLDER=d.drive_upload_folder||'';
+        window.__GLOBAL_STD_ALLOW=d.global_std_allow!==false;
+        const daRow=document.getElementById('l-da-row');
+        if(daRow) daRow.style.display=window.__GLOBAL_STD_ALLOW?'':'none';
       }
     })
     .withFailureHandler(()=>{})
@@ -6949,6 +6954,10 @@ function phEditSave(e){
 let DA_INSTS=[], DA_SEL={inst:null,session:null,exam:null,cls:null,fee:0};
 
 function daOpen(){
+  if(window.__GLOBAL_STD_ALLOW===false){
+    toast('বর্তমানে সরাসরি শিক্ষার্থী আবেদন গ্রহণ বন্ধ আছে','warning');
+    return;
+  }
   document.getElementById('pg-login').classList.add('hidden');
   document.getElementById('pg-dapp-public').style.display='block';
   resetViewScroll();
