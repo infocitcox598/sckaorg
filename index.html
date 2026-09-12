@@ -1255,6 +1255,11 @@ select.fi{padding-left:12px}
           <div class="iw"><i class="fas fa-mobile-alt ico"></i><input class="fi" id="std-gmob" placeholder="01XXX-XXXXXX"></div></div>
       </div>
 
+      <div class="fgrid">
+        <div class="fg"><label class="fl">জন্মনিবন্ধন নং</label>
+          <div class="iw"><i class="fas fa-id-card ico"></i><input class="fi" id="std-brn" placeholder="জন্মনিবন্ধন নম্বর"></div></div>
+      </div>
+
       <div class="ma">
         <button type="button" class="btn btn-ol" onclick="stdMoClose()">বাতিল</button>
         <button type="submit" class="btn btn-pr" id="std-sb"><i class="fas fa-user-plus"></i> সংরক্ষণ করুন</button>
@@ -2090,6 +2095,8 @@ select.fi{padding-left:12px}
       </div>
       <div class="fg"><label class="fl">রোল নম্বর <span style="font-size:.74rem;color:var(--mu);font-weight:400">(ঐচ্ছিক)</span></label>
         <div class="iw"><i class="fas fa-hashtag ico"></i><input class="fi" id="da-roll" placeholder="রোল নম্বর (থাকলে দিন)"></div></div>
+      <div class="fg"><label class="fl">জন্মনিবন্ধন নং <span style="font-size:.74rem;color:var(--mu);font-weight:400">(ঐচ্ছিক)</span></label>
+        <div class="iw"><i class="fas fa-id-card ico"></i><input class="fi" id="da-brn" placeholder="জন্মনিবন্ধন নম্বর"></div></div>
       <div class="fg"><label class="fl">ছবি — Google Drive লিংক দিন <span style="color:var(--mu);font-weight:400">অথবা</span> সরাসরি আপলোড করুন (ঐচ্ছিক)</label>
         <div class="iw"><i class="fab fa-google-drive ico"></i><input class="fi" id="da-photo-link" placeholder="https://drive.google.com/file/d/..." oninput="daPhotoLinkTyped()"></div>
         <div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">
@@ -3275,6 +3282,11 @@ select.fi{padding-left:12px}
                 <div class="iw"><i class="fas fa-mobile-alt ico"></i><input class="fi" id="sp-gmob" placeholder="01XXX-XXXXXX"></div></div>
             </div>
 
+            <div class="fgrid">
+              <div class="fg"><label class="fl">জন্মনিবন্ধন নং</label>
+                <div class="iw"><i class="fas fa-id-card ico"></i><input class="fi" id="sp-brn" placeholder="জন্মনিবন্ধন নম্বর"></div></div>
+            </div>
+
             <div style="display:flex;gap:10px;justify-content:flex-end">
               <button type="button" class="btn btn-ol" onclick="spReset()"><i class="fas fa-rotate-left"></i> রিসেট</button>
               <button type="submit" class="btn btn-pr" id="sp-save-btn"><i class="fas fa-user-plus"></i> শিক্ষার্থী সংরক্ষণ করুন</button>
@@ -4230,6 +4242,7 @@ select.fi{padding-left:12px}
           name_bn:d.name_bn||'',name_en:d.name_en||'',
           father_name:d.father_name||'',mother_name:d.mother_name||'',
           dob:d.dob||'',roll:d.roll||'',inst_mobile:'',guardian_mobile:d.guardian_mobile||'',
+          birth_reg_no:d.birth_reg_no||'',
           photo:d.photo||'',photo_file_id:d.photo_file_id||'',created_at:Date.now()
         });
         if(d.txn_id) await db.collection('used_txn_ids').add({txn_id:String(d.txn_id).trim(),app_no:d.app_no||'',used_at:Date.now()});
@@ -5896,6 +5909,7 @@ function stdPageSave(e){
     roll:document.getElementById('sp-roll').value.trim(),
     inst_mobile:document.getElementById('sp-imob').value.trim(),
     guardian_mobile:document.getElementById('sp-gmob').value.trim(),
+    birth_reg_no:document.getElementById('sp-brn').value.trim(),
     photo:document.getElementById('sp-photo-data').value,
     photo_file_id:document.getElementById('sp-photo-fileid').value
   };
@@ -6026,6 +6040,7 @@ function stdEditOpen(idx){
   else{rollEl.readOnly=false;rollEl.style.background='';rollEl.style.cursor='';rollEl.title='';}
   document.getElementById('std-imob').value=s.inst_mobile||'';
   document.getElementById('std-gmob').value=s.guardian_mobile||'';
+  document.getElementById('std-brn').value=s.birth_reg_no||'';
   document.getElementById('std-photo-data').value=s.photo||'';
   document.getElementById('std-photo-fileid').value='';
   const stt=document.getElementById('std-photo-status');if(stt)stt.textContent='';
@@ -6092,6 +6107,7 @@ function stdSave(e){
     dob:document.getElementById('std-dob').value,roll:(CR==='institution'?((window._slFiltered||[]).find(x=>String(x.id)===String(id))?.roll||''):document.getElementById('std-roll').value.trim()),
     inst_mobile:document.getElementById('std-imob').value.trim(),
     guardian_mobile:document.getElementById('std-gmob').value.trim(),
+    birth_reg_no:document.getElementById('std-brn').value.trim(),
     photo:document.getElementById('std-photo-data').value,
     photo_file_id:document.getElementById('std-photo-fileid').value
   };
@@ -7234,6 +7250,7 @@ function daSubmit(){
     dob:document.getElementById('da-dob').value,
     guardian_mobile:document.getElementById('da-mobile').value.trim(),
     roll:document.getElementById('da-roll').value.trim(),
+    birth_reg_no:document.getElementById('da-brn').value.trim(),
     photo:document.getElementById('da-photo-data').value,
     photo_file_id:document.getElementById('da-photo-fileid').value,
     fee_amount:DA_SEL.cls.fee||0,
