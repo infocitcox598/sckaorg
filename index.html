@@ -1256,8 +1256,8 @@ select.fi{padding-left:12px}
       </div>
 
       <div class="fgrid">
-        <div class="fg"><label class="fl">জন্মনিবন্ধন নং</label>
-          <div class="iw"><i class="fas fa-id-card ico"></i><input class="fi" id="std-brn" placeholder="জন্মনিবন্ধন নম্বর"></div></div>
+        <div class="fg"><label class="fl">জন্মনিবন্ধন নং *</label>
+          <div class="iw"><i class="fas fa-id-card ico"></i><input class="fi" id="std-brn" placeholder="জন্মনিবন্ধন নম্বর" required></div></div>
       </div>
 
       <div class="ma">
@@ -2095,8 +2095,8 @@ select.fi{padding-left:12px}
       </div>
       <div class="fg"><label class="fl">রোল নম্বর <span style="font-size:.74rem;color:var(--mu);font-weight:400">(ঐচ্ছিক)</span></label>
         <div class="iw"><i class="fas fa-hashtag ico"></i><input class="fi" id="da-roll" placeholder="রোল নম্বর (থাকলে দিন)"></div></div>
-      <div class="fg"><label class="fl">জন্মনিবন্ধন নং <span style="font-size:.74rem;color:var(--mu);font-weight:400">(ঐচ্ছিক)</span></label>
-        <div class="iw"><i class="fas fa-id-card ico"></i><input class="fi" id="da-brn" placeholder="জন্মনিবন্ধন নম্বর"></div></div>
+      <div class="fg"><label class="fl">জন্মনিবন্ধন নং *</label>
+        <div class="iw"><i class="fas fa-id-card ico"></i><input class="fi" id="da-brn" placeholder="জন্মনিবন্ধন নম্বর" required></div></div>
       <div class="fg"><label class="fl">ছবি — Google Drive লিংক দিন <span style="color:var(--mu);font-weight:400">অথবা</span> সরাসরি আপলোড করুন (ঐচ্ছিক)</label>
         <div class="iw"><i class="fab fa-google-drive ico"></i><input class="fi" id="da-photo-link" placeholder="https://drive.google.com/file/d/..." oninput="daPhotoLinkTyped()"></div>
         <div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">
@@ -3283,8 +3283,8 @@ select.fi{padding-left:12px}
             </div>
 
             <div class="fgrid">
-              <div class="fg"><label class="fl">জন্মনিবন্ধন নং</label>
-                <div class="iw"><i class="fas fa-id-card ico"></i><input class="fi" id="sp-brn" placeholder="জন্মনিবন্ধন নম্বর"></div></div>
+              <div class="fg"><label class="fl">জন্মনিবন্ধন নং *</label>
+                <div class="iw"><i class="fas fa-id-card ico"></i><input class="fi" id="sp-brn" placeholder="জন্মনিবন্ধন নম্বর" required></div></div>
             </div>
 
             <div style="display:flex;gap:10px;justify-content:flex-end">
@@ -4210,7 +4210,7 @@ select.fi{padding-left:12px}
     async submitDirectApplication(d){
       const s=await loadSettings();
       if(s.global_std_allow==='false') return err('বর্তমানে সরাসরি শিক্ষার্থী আবেদন গ্রহণ বন্ধ আছে — সুপার এডমিনের সাথে যোগাযোগ করুন');
-      if(!d.name_bn||!d.inst_id||!d.session_id||!d.class_id) return err('আবশ্যক তথ্য অনুপস্থিত');
+      if(!d.name_bn||!d.inst_id||!d.session_id||!d.class_id||!d.birth_reg_no) return err('আবশ্যক তথ্য অনুপস্থিত (জন্মনিবন্ধন নং সহ)');
       if(!d.txn_id) return err('ট্রানজেকশন আইডি দিন');
       const txn=String(d.txn_id).trim();
       const dup1=await db.collection('direct_applications').where('txn_id','==',txn).limit(1).get();
@@ -7201,7 +7201,7 @@ async function daUploadPhoto(fileInput){
 }
 function daStep3Next(){
   if(!DA_SEL.cls){toast('শ্রেণি বেছে নিন','warning');return;}
-  const req=['da-nm-bn','da-father','da-mother','da-dob','da-mobile'];
+  const req=['da-nm-bn','da-father','da-mother','da-dob','da-mobile','da-brn'];
   for(const id of req){ if(!document.getElementById(id).value.trim()){toast('সকল আবশ্যক (*) তথ্য পূরণ করুন','warning');return;} }
   const photoLink=document.getElementById('da-photo-link').value.trim();
   if(photoLink) document.getElementById('da-photo-data').value=toDriveDirectUrl(photoLink);
