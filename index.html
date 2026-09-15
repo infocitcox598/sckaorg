@@ -4207,6 +4207,35 @@ select.fi{padding-left:12px}
         return {success:true,fee:Number(snap.data().admission_fee||0)};
       }catch(e){ return err(e.message); }
     },
+    async trackPendingPhoto(fileId){
+      if(!fileId) return {success:true};
+      try{
+        const ref=await db.collection('pending_photo_uploads').add({file_id:fileId,uploaded_at:Date.now()});
+        return {success:true,id:ref.id};
+      }catch(e){ return err(e.message); }
+    },
+    async clearPendingPhoto(fileId){
+      if(!fileId) return {success:true};
+      try{
+        const snap=await db.collection('pending_photo_uploads').where('file_id','==',fileId).get();
+        const batch=db.batch();
+        snap.docs.forEach(d=>batch.delete(d.ref));
+        await batch.commit();
+        return ok('cleared');
+      }catch(e){ return err(e.message); }
+    },
+    async sweepStalePhotos(){
+      try{
+        const cutoff=Date.now()-5*60*1000; // ৫ মিনিটের বেশি পুরোনো, আবেদনে ব্যবহার হয়নি এমন ছবি
+        const snap=await db.collection('pending_photo_uploads').where('uploaded_at','<',cutoff).limit(25).get();
+        for(const d of snap.docs){
+          const data=d.data();
+          if(data.file_id) await deleteDrivePhotoFile(data.file_id);
+          await d.ref.delete();
+        }
+        return {success:true,cleaned:snap.size};
+      }catch(e){ return err(e.message); }
+    },
     async submitDirectApplication(d){
       const s=await loadSettings();
       if(s.global_std_allow==='false') return err('বর্তমানে সরাসরি শিক্ষার্থী আবেদন গ্রহণ বন্ধ আছে — সুপার এডমিনের সাথে যোগাযোগ করুন');
@@ -4412,6 +4441,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     .getPublicSettings();
   // Initialize history state for mobile back button
   try{ history.replaceState({page:'db',t:'init'},'',location.hash||'#db'); }catch(e){}
+  // পাঁচ মিনিটের বেশি পুরোনো, কোনো আবেদনে ব্যবহার হয়নি এমন আপলোড করা ছবি মুছে ফেলার জন্য — প্রতিটা পেজ লোডে একবার চেষ্টা করা হয়
+  setTimeout(()=>{
+    google.script.run.withSuccessHandler(()=>{}).withFailureHandler(()=>{}).sweepStalePhotos();
+  },4000);
 });
 
 // Mobile hardware back button → close modals/sidebar first, then navigate back to dashboard
@@ -5560,7 +5593,11 @@ async function genPhotoUpload(fileInput,prefix){
           img.src=res.url;img.style.display='block';ph.style.display='none';wrap.classList.add('has-img');
           status.style.color='var(--ok)';
           status.innerHTML='<i class="fas fa-circle-check"></i> আপলোড সফল ('+Math.round(blob.size/1024)+' KB)';
-          if(prevFileId && prevFileId!==res.fileId) daDeleteDriveFile(prevFileId);
+          if(res.fileId) google.script.run.withSuccessHandler(()=>{}).withFailureHandler(()=>{}).trackPendingPhoto(res.fileId);
+          if(prevFileId && prevFileId!==res.fileId){
+            daDeleteDriveFile(prevFileId);
+            google.script.run.withSuccessHandler(()=>{}).withFailureHandler(()=>{}).clearPendingPhoto(prevFileId);
+          }
         }else{
           status.style.color='var(--er)';
           status.textContent='আপলোড ব্যর্থ: '+(res.message||'অজানা ত্রুটি');
@@ -5917,7 +5954,9 @@ function stdPageSave(e){
   google.script.run.withSuccessHandler(res=>{
     btn.disabled=false;btn.innerHTML='<i class="fas fa-user-plus"></i> শিক্ষার্থী সংরক্ষণ করুন';
     if(res.success){
-      STDS.push({...d,id:res.id,created_at:''});updateStats();spReset();
+      STDS.push({...d,id:res.id,created_at:''});updateStats();
+      if(d.photo_file_id) google.script.run.withSuccessHandler(()=>{}).withFailureHandler(()=>{}).clearPendingPhoto(d.photo_file_id);
+      spReset();
       toast(res.message);
     }else toast(res.message,'error');
   }).withFailureHandler(err=>{btn.disabled=false;toast('ত্রুটি: '+err.message,'error');}).addStudent(d);
@@ -6113,7 +6152,10 @@ function stdSave(e){
   };
   google.script.run.withSuccessHandler(res=>{
     btn.disabled=false;btn.innerHTML='<i class="fas fa-save"></i> সংরক্ষণ করুন';
-    if(res.success){stdMoClose();slLoad();toast(res.message);}else toast(res.message,'error');
+    if(res.success){
+      if(d.photo_file_id) google.script.run.withSuccessHandler(()=>{}).withFailureHandler(()=>{}).clearPendingPhoto(d.photo_file_id);
+      stdMoClose();slLoad();toast(res.message);
+    }else toast(res.message,'error');
   }).withFailureHandler(err=>{btn.disabled=false;toast('ত্রুটি: '+err.message,'error');}).updateStudent(d);
 }
 
@@ -7011,20 +7053,26 @@ function daGoStep(step){
     else if(idx===curIdx) dot.classList.add('active');
   });
 }
-function daRenderInstList(list){
+function daRenderInstList(list,isSearch){
   const box=document.getElementById('da-inst-list');
   if(!list.length){box.innerHTML='<div class="te" style="text-align:center;padding:20px;color:var(--mu)">কোনো প্রতিষ্ঠান পাওয়া যায়নি</div>';return;}
-  box.innerHTML=list.map(i=>`
+  const LIMIT=5;
+  const shown=isSearch?list:list.slice(0,LIMIT);
+  box.innerHTML=shown.map(i=>`
     <div onclick='daSelectInst(${esc(JSON.stringify(i.id))},${esc(JSON.stringify(i.inst_name))})'
       style="border:1px solid var(--bd);border-radius:9px;padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:10px" onmouseover="this.style.borderColor='var(--ac)'" onmouseout="this.style.borderColor='var(--bd)'">
       <i class="fas fa-university" style="color:var(--ac)"></i>
       <div><div style="font-weight:700;font-size:.92rem">${esc(i.inst_name)}</div>
       ${i.address?`<div style="font-size:.74rem;color:var(--mu)">${esc(i.address)}</div>`:''}</div>
-    </div>`).join('');
+    </div>`).join('')
+    + (!isSearch && list.length>LIMIT
+        ? `<div style="text-align:center;padding:10px;color:var(--mu);font-size:.8rem"><i class="fas fa-magnifying-glass"></i> আরও ${list.length-LIMIT}টি প্রতিষ্ঠান আছে — নাম লিখে খুঁজুন</div>`
+        : '');
 }
 function daFilterInst(){
   const q=document.getElementById('da-inst-q').value.trim().toLowerCase();
-  daRenderInstList(q?DA_INSTS.filter(i=>(i.inst_name||'').toLowerCase().includes(q)):DA_INSTS);
+  if(!q){ daRenderInstList(DA_INSTS,false); return; }
+  daRenderInstList(DA_INSTS.filter(i=>(i.inst_name||'').toLowerCase().includes(q)),true);
 }
 function daSelectInst(id,name){
   DA_SEL.inst={id,name};
@@ -7185,8 +7233,12 @@ async function daUploadPhoto(fileInput){
           document.getElementById('da-photo-link').value='';
           status.style.color='var(--ok)';
           status.innerHTML='<i class="fas fa-circle-check"></i> ছবি সফলভাবে আপলোড হয়েছে ('+Math.round(blob.size/1024)+' KB)';
+          if(res.fileId) google.script.run.withSuccessHandler(()=>{}).withFailureHandler(()=>{}).trackPendingPhoto(res.fileId);
           // আগের আপলোড করা ছবি (থাকলে) মুছে ফেলো — একাধিক ছবি জমে থাকা এড়াতে
-          if(prevFileId && prevFileId!==res.fileId) daDeleteDriveFile(prevFileId);
+          if(prevFileId && prevFileId!==res.fileId){
+            daDeleteDriveFile(prevFileId);
+            google.script.run.withSuccessHandler(()=>{}).withFailureHandler(()=>{}).clearPendingPhoto(prevFileId);
+          }
         }else{
           status.style.color='var(--er)';
           status.textContent='আপলোড ব্যর্থ: '+(res.message||'অজানা ত্রুটি');
@@ -7263,6 +7315,7 @@ function daSubmit(){
     if(res.success){
       DA_LAST_APP={...d,app_no:res.app_no};
       document.getElementById('da-done-appno').textContent=res.app_no;
+      if(d.photo_file_id) google.script.run.withSuccessHandler(()=>{}).withFailureHandler(()=>{}).clearPendingPhoto(d.photo_file_id);
       daGoStep('done');
     }else toast(res.message,'error');
   }).withFailureHandler(e=>{btn.disabled=false;btn.innerHTML='<i class="fas fa-paper-plane"></i> আবেদন জমা দিন';toast('ত্রুটি: '+e.message,'error');}).submitDirectApplication(d);
